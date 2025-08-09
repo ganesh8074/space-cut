@@ -1,5 +1,9 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.backends.backend_pdf import PdfPages
+import io
+import random
 
 class Cutspacecut:
     def __init__(self, material_length, material_width):
@@ -23,11 +27,6 @@ class Cutspacecut:
                 'remaining': [(0, 0, self.material_length, self.material_width)]
             }
 
-            st.write(f"\n--- Starting Sheet {sheet_number} ---")
-            st.write("Remaining pieces to cut (count):", len(remaining_pieces))
-            #st.write("Remaining pieces list:", remaining_pieces)
-            #st.write("Initial sheet remaining spaces:", sheet['remaining'])
-
             while True:
                 placed_in_this_pass = False
                 for piece in remaining_pieces[:]:
@@ -49,61 +48,139 @@ class Cutspacecut:
                             if piece['width'] < rem_width:
                                 new_spaces.append((x_offset, y_offset + piece['width'], rem_length, rem_width - piece['width']))
 
-                            st.write(f"\n✂️ Cut piece: {piece} at ({x_offset}, {y_offset}) in Sheet {sheet_number}")
-
                             # Update spaces
                             del sheet['remaining'][idx]
                             sheet['remaining'].extend(new_spaces)
-
-                            # Debug snapshots
-                            # st.write("Updated sheet cuts:", sheet['cuts'])
-                            # st.write("Updated sheet remaining spaces:", sheet['remaining'])
-                            # st.write("Remaining pieces to cut (count):", len(remaining_pieces))
-                            # st.write("Remaining pieces list now:", remaining_pieces)
 
                             placed_in_this_pass = True
                             break
                     if placed_in_this_pass:
                         break
                 if not placed_in_this_pass:
-                    st.write("No more pieces fit in this sheet. Moving to next sheet.\n")
                     break
 
             cutting_plan.append(sheet)
-
-        st.write(f"\n=== ✅ Final cutting plan uses {sheet_number} sheets ===")
         return cutting_plan
 
-    def plot_cutting_plan(self, sheets):
-        fig, axes = plt.subplots(1, len(sheets), figsize=(6 * len(sheets), 8))
+    def assign_piece_ids_and_colors(self, sheets):
+        # Assign a unique ID and consistent color for each unique piece size across sheets
+        unique_pieces = {}
+        piece_id = 1
+        colors = []
+
+        # Generate a list of distinct colors
+        random.seed(42)  # Fix seed for reproducibility
+        for _ in range(100):  # 100 distinct colors max (modify if needed)
+            colors.append((random.random(), random.random(), random.random()))
+
+        for sheet in sheets:
+            for cut in sheet['cuts']:
+                key = (cut['length'], cut['width'])
+                if key not in unique_pieces:
+                    unique_pieces[key] = {'id': piece_id, 'color': colors[piece_id - 1]}
+                    piece_id += 1
+                cut['piece_id'] = unique_pieces[key]['id']
+                cut['color'] = unique_pieces[key]['color']
+
+        return unique_pieces
+
+    def plot_cutting_plan_vertical(self, sheets, unique_pieces):
+        # Create vertical plots - one below another
+        fig_height = 6 * len(sheets)
+        fig, axes = plt.subplots(len(sheets), 1, figsize=(12, fig_height))
         if len(sheets) == 1:
             axes = [axes]
 
         for sheet_index, (ax, sheet) in enumerate(zip(axes, sheets)):
             for cut in sheet['cuts']:
-                ax.add_patch(plt.Rectangle(
-                    (cut['x_offset'], cut['y_offset']),
-                    cut['length'], cut['width'],
-                    edgecolor='black', facecolor='orange', alpha=0.5
-                ))
+                ax.add_patch(
+                    mpatches.Rectangle(
+                        (cut['x_offset'], cut['y_offset']),
+                        cut['length'], cut['width'],
+                        edgecolor='black',
+                        facecolor=cut['color'],
+                        alpha=0.7
+                    )
+                )
                 ax.text(
                     cut['x_offset'] + cut['length'] / 2,
                     cut['y_offset'] + cut['width'] / 2,
-                    f"{cut['length']}x{cut['width']}",
-                    ha='center', va='center', fontsize=9, color='black'
+                    f"ID:{cut['piece_id']}\n{cut['length']}x{cut['width']}",
+                    ha='center',
+                    va='center',
+                    fontsize=8,
+                    color='black'
                 )
             ax.set_xlim(0, self.material_length)
             ax.set_ylim(0, self.material_width)
+            ax.set_xticks(range(0, self.material_length + 100, 100))
+            ax.set_yticks(range(0, self.material_width + 100, 100))
             ax.set_title(f"Sheet {sheet_index + 1}")
             ax.set_xlabel("Length (mm)")
             ax.set_ylabel("Width (mm)")
+            ax.invert_yaxis()
+            ax.set_aspect('equal', adjustable='box')
 
         plt.tight_layout()
         st.pyplot(fig)
 
+    def generate_pdf(self, sheets, unique_pieces, material_length, material_width):
+        pdf_buffer = io.BytesIO()
+        with PdfPages(pdf_buffer) as pdf:
+            for sheet_index, sheet in enumerate(sheets):
+                fig, ax = plt.subplots(figsize=(12, 8))
+                for cut in sheet['cuts']:
+                    ax.add_patch(
+                        mpatches.Rectangle(
+                            (cut['x_offset'], cut['y_offset']),
+                            cut['length'], cut['width'],
+                            edgecolor='black',
+                            facecolor=cut['color'],
+                            alpha=0.7
+                        )
+                    )
+                    ax.text(
+                        cut['x_offset'] + cut['length'] / 2,
+                        cut['y_offset'] + cut['width'] / 2,
+                        f"ID:{cut['piece_id']}\n{cut['length']}x{cut['width']}",
+                        ha='center',
+                        va='center',
+                        fontsize=8,
+                        color='black'
+                    )
+                ax.set_xlim(0, material_length)
+                ax.set_ylim(0, material_width)
+                ax.set_title(f"Sheet {sheet_index + 1}")
+                ax.set_xlabel("Length (mm)")
+                ax.set_ylabel("Width (mm)")
+                ax.invert_yaxis()
+                ax.set_aspect('equal', adjustable='box')
+                plt.tight_layout()
+
+                pdf.savefig(fig)
+                plt.close(fig)
+
+            # Add a legend page
+            fig_legend, ax_legend = plt.subplots(figsize=(8, 4))
+            legend_handles = []
+            labels = []
+            for size, info in sorted(unique_pieces.items(), key=lambda x: x[1]['id']):
+                patch = mpatches.Patch(color=info['color'], label=f"ID {info['id']}: {size[0]}x{size[1]} mm")
+                legend_handles.append(patch)
+                labels.append(f"ID {info['id']}: {size[0]}x{size[1]} mm")
+
+            ax_legend.legend(handles=legend_handles, loc='center')
+            ax_legend.axis('off')
+            plt.tight_layout()
+            pdf.savefig(fig_legend)
+            plt.close(fig_legend)
+
+        pdf_buffer.seek(0)
+        return pdf_buffer
+
 def main():
-    st.set_page_config(page_title="cut sheet spacecut", layout="centered")
-    st.title("🛠️ cut sheet spacecut")
+    st.set_page_config(page_title="Cut Sheet Spacecut", layout="centered")
+    st.title("🛠️ Cut Sheet Spacecut")
 
     # Material Inputs
     st.header("📏 Material Dimensions")
@@ -117,20 +194,22 @@ def main():
     pieces = []
     for i in range(num_pieces):
         st.subheader(f"Piece {i + 1}")
-        length = st.number_input(f"Length of Piece {i + 1} (mm)", min_value=1, value=600, key=f"length_{i}")
-        width = st.number_input(f"Width of Piece {i + 1} (mm)", min_value=1, value=300, key=f"width_{i}")
-        quantity = st.number_input(f"Quantity of Piece {i + 1}", min_value=1, value=5, key=f"quantity_{i}")
+        length = st.number_input(f"Length of Piece {i + 1} (mm)", min_value=1, value=1, key=f"length_{i}")
+        width = st.number_input(f"Width of Piece {i + 1} (mm)", min_value=1, value=1, key=f"width_{i}")
+        quantity = st.number_input(f"Quantity of Piece {i + 1}", min_value=1, value=1, key=f"quantity_{i}")
         for _ in range(quantity):
             pieces.append({'length': length, 'width': width})
 
-    # Submit button
+    # Generate button
     submitted = st.button("Generate Cutting Plan")
     if submitted:
         st.success("✅ Cutting Plan Generated")
         spacecut = Cutspacecut(material_length, material_width)
         sheets = spacecut.fit_pieces(pieces)
 
-        # Show textual cutting plan
+        unique_pieces = spacecut.assign_piece_ids_and_colors(sheets)
+
+        # Textual plan output
         st.subheader("🔷 Cutting Plan (Textual)")
         total_cut_area = 0
         total_material_area = 0
@@ -139,18 +218,28 @@ def main():
         for sheet_index, sheet in enumerate(sheets):
             st.write(f"Sheet {sheet_index + 1}:")
             for piece in sheet['cuts']:
-                st.write(f"  Cut Piece: {piece['length']}mm x {piece['width']}mm at ({piece['x_offset']}mm, {piece['y_offset']}mm)")
+                st.write(f"  Cut Piece ID {piece['piece_id']}: {piece['length']}mm x {piece['width']}mm at ({piece['x_offset']}mm, {piece['y_offset']}mm)")
                 total_cut_area += piece['length'] * piece['width']
             total_material_area += material_length * material_width
 
         waste = total_material_area - total_cut_area
-        #st.write(f"\nTotal Material Used: {total_cut_area} mm²")
-        #st.write(f"Total Waste: {waste} mm²")
+
+        st.write(f"\nTotal Material Used: {total_cut_area} mm²")
+        st.write(f"Total Waste: {waste} mm²")
         st.write(f"\nTotal Sheets Used: {sheet_count}")
 
-        # Visualization
+        # Visualization (vertical layout)
         st.subheader("🔷 Cutting Plan (Visualization)")
-        spacecut.plot_cutting_plan(sheets)
+        spacecut.plot_cutting_plan_vertical(sheets, unique_pieces)
+
+        # PDF download
+        pdf_bytes = spacecut.generate_pdf(sheets, unique_pieces, material_length, material_width)
+        st.download_button(
+            label="📥 Download Cutting Plan PDF",
+            data=pdf_bytes,
+            file_name="cutting_plan.pdf",
+            mime="application/pdf"
+        )
 
 if __name__ == "__main__":
     main()
