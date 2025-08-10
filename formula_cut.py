@@ -8,19 +8,19 @@ from rectpack import newPacker, MaxRectsBssf
 import io
 import random
 
-st.set_page_config(page_title="Cut Sheet Spacecut Pro (Greedy Legacy)", page_icon="✂️", layout="wide")
+st.set_page_config(page_title="SpaceCraft Cut Sheet", page_icon="✂️", layout="wide")
 
 # ============================ UI ============================
 with st.sidebar:
     st.title("✂️ Sheet Optimizer")
-    st.markdown("## ⚙️ Settings")
+    st.markdown("## ⚙️Original Material Size")
 
     material_length = st.number_input("Material Length (mm)", min_value=1, value=2140)
     material_width  = st.number_input("Material Width (mm)",  min_value=1, value=1200)
 
     allow_rotation =True
     #allow_rotation = st.toggle("Allow Piece Rotation (try both orientations)", value=True)
-    st.caption("This uses your legacy greedy per-sheet logic. No kerf applied (exact part sizes).")
+    #st.caption("This uses your legacy greedy per-sheet logic. No kerf applied (exact part sizes).")
 
     st.markdown("---")
     st.markdown("## 📋 Pieces Input")
