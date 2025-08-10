@@ -233,7 +233,8 @@ def main():
     material_width  = st.number_input("Material Width (mm)",  min_value=1, value=1200)
 
     # Rotation toggle (your earlier class had rotation=True hardcoded)
-    allow_rotation = st.toggle("Allow Piece Rotation (try both orientations)", value=True)
+    #allow_rotation = st.toggle("Allow Piece Rotation (try both orientations)", value=True)
+    allow_rotation = True
 
     # Pieces Input
     st.header("📦 Pieces to Cut")
@@ -258,7 +259,7 @@ def main():
 
         # Assign consistent IDs/colors by TRUE size (no size overwrite)
         unique_pieces = assign_piece_ids_and_colors(sheets, pieces)
-
+        st.write(f"\nTotal Sheets Used: {len(sheets)}")
         # Textual plan output + metrics
         st.subheader("🔷 Cutting Plan (Textual)")
         total_cut_area = 0
@@ -274,8 +275,8 @@ def main():
             total_material_area += material_length * material_width
 
         waste = total_material_area - total_cut_area
-        st.write(f"\nTotal Material Used: {int(total_cut_area)} mm²")
-        st.write(f"Total Waste: {int(waste)} mm²")
+        #st.write(f"\nTotal Material Used: {int(total_cut_area)} mm²")
+        #st.write(f"Total Waste: {int(waste)} mm²")
         st.write(f"\nTotal Sheets Used: {len(sheets)}")
 
         # Visualization (tabs, axes exactly sheet size)
