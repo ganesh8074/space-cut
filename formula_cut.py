@@ -18,7 +18,8 @@ with st.sidebar:
     material_length = st.number_input("Material Length (mm)", min_value=1, value=2140)
     material_width  = st.number_input("Material Width (mm)",  min_value=1, value=1200)
 
-    allow_rotation = st.toggle("Allow Piece Rotation (try both orientations)", value=True)
+    allow_rotation =True
+    #allow_rotation = st.toggle("Allow Piece Rotation (try both orientations)", value=True)
     st.caption("This uses your legacy greedy per-sheet logic. No kerf applied (exact part sizes).")
 
     st.markdown("---")
@@ -40,7 +41,9 @@ with st.sidebar:
 
     st.markdown("---")
     dark_mode = st.toggle("🌒 Dark Mode UI", value=False)
-    show_instructions = st.checkbox("Show Instructions & Tips", value=True)
+    #show_instructions = st.checkbox("Show Instructions & Tips", value=True)
+    show_instructions = False
+
 
 if dark_mode:
     st.markdown("""
