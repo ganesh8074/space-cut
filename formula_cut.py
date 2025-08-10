@@ -54,7 +54,7 @@ if dark_mode:
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🛠️ Cut Sheet Spacecut Pro — Legacy Greedy")
+st.title("🛠️ SpaceCraft Cut Sheet")
 
 if show_instructions:
     with st.expander("ℹ️ What this mode does", expanded=True):
