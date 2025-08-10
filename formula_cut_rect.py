@@ -225,7 +225,7 @@ def generate_pdf(sheets, unique_pieces, material_length, material_width):
 # ---------------- Streamlit App ----------------
 def main():
     st.set_page_config(page_title="Cut Sheet Spacecut", layout="centered")
-    st.title("🛠️ Cut Sheet Spacecut (Greedy per-sheet, rotation-aware)")
+    st.title("🛠️ Cut Sheet Spacecut")
 
     # Material Inputs
     st.header("📏 Material Dimensions")
