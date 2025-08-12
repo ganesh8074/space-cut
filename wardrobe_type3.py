@@ -41,6 +41,7 @@ def calc_type3(data):
         shelf_len = ((data["length"] - 3*T_ALL) * 2)/3
         shelf_dep = data["depth"] - T_ALL - groove_thick
         out.append(f"Left Shelves: {data['left_shelves']} pcs — {mm(shelf_len)} × {mm(shelf_dep)}")
+        out.append(f"Left Shelves vertical: {data['left_shelves']} pcs — {mm(shelf_len / 3)} × {mm(shelf_dep)}")
      
     if data.get("right_shelves", 0) > 0:
         shelf_len = (data["length"] - 3*T_ALL) /3
