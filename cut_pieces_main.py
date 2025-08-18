@@ -36,8 +36,8 @@ type_fns = {
 
 }
 
-st.set_page_config(page_title="Wardrobe Multi-Type Material Calculator", layout="wide")
-st.title("🛠️ Multi-Type Wardrobe Calculator")
+st.set_page_config(page_title=" Multi-Type Material Calculator", layout="wide")
+st.title("🛠️ Multi-Type Cut Piece Calculator")
 
 # --- Session state init ---
 if "all_types_inputs" not in st.session_state:
@@ -48,7 +48,7 @@ if "edit_index" not in st.session_state:
 
 # --- Sidebar: Add/Edit/Manage ---
 with st.sidebar:
-    st.header("➕ Add New / Edit Wardrobe")
+    st.header("➕ Add New / Edit")
 
     # If editing, lock type and prefill fields
     if st.session_state["edit_index"] is not None:
@@ -56,7 +56,7 @@ with st.sidebar:
         type_label = st.session_state["all_types_labels"][st.session_state["edit_index"]]
         prefill = st.session_state["all_types_inputs"][st.session_state["edit_index"]]
     else:
-        type_label = st.selectbox("Wardrobe Type", list(type_fns.keys()), key="sidebar_type")
+        type_label = st.selectbox("Module Type", list(type_fns.keys()), key="sidebar_type")
         prefill = {}
 
     form_fn, _, _ = type_fns[type_label]
@@ -79,7 +79,7 @@ with st.sidebar:
                 st.success(f"✏️ Updated {type_label}")
 
     st.markdown("---")
-    st.header("🗂 Manage Added Wardrobes")
+    st.header("🗂 Manage Added Modules")
     for i, tname in enumerate(st.session_state["all_types_labels"]):
         st.write(f"{i+1}. {tname}")
         col1, col2, col3 = st.columns(3)
@@ -103,7 +103,7 @@ with st.sidebar:
 
 # --- Main area: Outputs ---
 if st.session_state["all_types_inputs"]:
-    st.header("📋 All Materials by Wardrobe Type")
+    st.header("📋 All Materials by Module Type")
     for i, tname in enumerate(st.session_state["all_types_labels"]):
         st.subheader(f"{tname} — Option {i+1}")
         calc_fn = type_fns[tname][1]
@@ -117,4 +117,4 @@ if st.session_state["all_types_inputs"]:
                 st.write("- " + line)
         st.markdown("---")
 else:
-    st.info("No wardrobes added yet. Use the sidebar to add one.")
+    st.info("No Modules added yet. Use the sidebar to add one.")
