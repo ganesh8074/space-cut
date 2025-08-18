@@ -2,6 +2,9 @@ import streamlit as st
 import wardrobe_type1
 import wardrobe_type2
 import wardrobe_type3
+import wardrobe_type4
+import tv_unit_type1
+
 
 # --- Map wardrobe types to their form/calc functions and image paths ---
 type_fns = {
@@ -20,6 +23,17 @@ type_fns = {
         wardrobe_type3.calc_type3,
         "3door_2.png"
     ),
+    "4-Door Cupboard Type 1": (
+        wardrobe_type4.form_type4,
+        wardrobe_type4.calc_type4,
+        "4door_1.png"
+    ),
+    "TV Unit Type 1": (
+        tv_unit_type1.form_type_tv,
+        tv_unit_type1.calc_type_tv,
+        "tvunit1.png"
+    ),
+
 }
 
 st.set_page_config(page_title="Wardrobe Multi-Type Material Calculator", layout="wide")
