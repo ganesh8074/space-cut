@@ -1,120 +1,80 @@
 import streamlit as st
-import wardrobe_type1
-import wardrobe_type2
-import wardrobe_type3
-import wardrobe_type4
-import tv_unit_type1
 
-
-# --- Map wardrobe types to their form/calc functions and image paths ---
-type_fns = {
-    "2-Door Cupboard": (
-        wardrobe_type1.form_type1,
-        wardrobe_type1.calc_type1,
-        "2door.jpg"
-    ),
-    "3-Door Cupboard Type 1": (
-        wardrobe_type2.form_type2,
-        wardrobe_type2.calc_type2,
-        "3door.png"
-    ),
-    "3-Door Cupboard Type 2": (
-        wardrobe_type3.form_type3,
-        wardrobe_type3.calc_type3,
-        "3door_2.png"
-    ),
-    "4-Door Cupboard Type 1": (
-        wardrobe_type4.form_type4,
-        wardrobe_type4.calc_type4,
-        "4door_1.png"
-    ),
-    "TV Unit Type 1": (
-        tv_unit_type1.form_type_tv,
-        tv_unit_type1.calc_type_tv,
-        "tvunit1.png"
-    ),
-
-}
-
-st.set_page_config(page_title=" Multi-Type Material Calculator", layout="wide")
-st.title("🛠️ Multi-Type Cut Piece Calculator")
-
-# --- Session state init ---
-if "all_types_inputs" not in st.session_state:
-    st.session_state["all_types_inputs"] = []
-    st.session_state["all_types_labels"] = []
-if "edit_index" not in st.session_state:
-    st.session_state["edit_index"] = None
-
-# --- Sidebar: Add/Edit/Manage ---
-with st.sidebar:
-    st.header("➕ Add New / Edit")
-
-    # If editing, lock type and prefill fields
-    if st.session_state["edit_index"] is not None:
-        st.warning(f"✏ Editing Option {st.session_state['edit_index'] + 1}")
-        type_label = st.session_state["all_types_labels"][st.session_state["edit_index"]]
-        prefill = st.session_state["all_types_inputs"][st.session_state["edit_index"]]
-    else:
-        type_label = st.selectbox("Module Type", list(type_fns.keys()), key="sidebar_type")
+def form_type_tv(prefill=None, button_label="Add"):
+    if prefill is None:
         prefill = {}
 
-    form_fn, _, _ = type_fns[type_label]
+    tv_height = st.number_input("Total TV Unit Height (mm)", min_value=1000, value=prefill.get("height", 2515), step=5, key="tv_h")
+    tv_width = st.number_input("Total TV Unit Width (mm)", min_value=1000, value=prefill.get("width", 3830), step=5, key="tv_w")
+    rft_height = st.number_input("Rafter Height (mm)", min_value=100, value=prefill.get("height", 2515), step=5, key="rf_h")
+    rft_width = st.number_input("Rafter Width (mm)", min_value=100, value=prefill.get("width", 905), step=5, key="rf_w")
+    rlam_height = st.number_input("Rafter Laminate Height (mm)", min_value=100, value=prefill.get("height", 2215), step=5, key="rl_h")
+    rlam_width = st.number_input("Rafter Laminate Width (mm)", min_value=100, value=prefill.get("width", 605), step=5, key="rl_w")
+    ros_height = st.number_input("Right Open Shelf Height (mm)", min_value=100, value=prefill.get("height", 2290), step=5, key="ros_h")
+    ros_width = st.number_input("Right Open Shelf Width (mm)", min_value=100, value=prefill.get("width", 575), step=5, key="ros_w")
+    ros_depth = st.number_input("Right Open Shelf Depth (mm)", min_value=100, value=prefill.get("depth", 400), step=5, key="rps_d")
+    num_selfs = st.number_input("Number of Right Shelfs", min_value=0, max_value=10, value=prefill.get("num_drawers", 4), step=1, key="n_sh")
+    num_drawers = st.number_input("Number of Drawers", min_value=0, max_value=10, value=prefill.get("num_drawers", 4), step=1, key="tv_drawers")
+    draw_height = st.number_input("Drawer Height (mm)", min_value=50, value=prefill.get("drawer_h", 225), step=5, key="tv_drawer_h")
+    #draw_width = st.number_input("Drawer Width (mm)", min_value=50, value=prefill.get("drawer_w", 731), step=5, key="tv_drawer_w")
+    #ros_depth = st.number_input("Drawer Depth (mm)", min_value=50, value=prefill.get("drawer_d", 400), step=5, key="tv_drawer_d")
+    bos_height = st.number_input("Bottom Open Shelf Height (mm)", min_value=100, value=prefill.get("bos_height", 150), step=5, key="tv_bos_h")
+    blam_height = st.number_input("Barley Laminate Height (mm)", min_value=100, value=prefill.get("height", 1911), step=5, key="bl_h")
+    blam_width = st.number_input("Barley Laminate Width (mm)", min_value=100, value=prefill.get("width", 600), step=5, key="bl_w")
+    submitted = st.form_submit_button(button_label)
+    
+    inputs = {
+        "tv_height": tv_height,
+        "tv_width": tv_width,
+        "rft_height": rft_height,
+        "rft_width": rft_width,
+        "rlam_height": rlam_height,
+        "rlam_width": rlam_width,
+        "ros_height": ros_height,
+        "ros_width": ros_width,
+        "ros_depth": ros_depth,
+        "num_selfs": num_selfs,
+        "num_drawers": num_drawers,
+        "draw_height": draw_height,
+        "bos_height": bos_height,
+        "blam_height": blam_height,
+        "blam_width": blam_width
+    }
+    return submitted, inputs
 
-    with st.form("type_form"):
-        button_label = "Update" if st.session_state["edit_index"] is not None else "Add"
-        submitted, input_data = form_fn(prefill, button_label)
-        if submitted:
-            if st.session_state["edit_index"] is None:
-                # Add new entry
-                st.session_state["all_types_inputs"].append(input_data)
-                st.session_state["all_types_labels"].append(type_label)
-                st.success(f"✅ Added {type_label}")
-            else:
-                # Update existing
-                idx = st.session_state["edit_index"]
-                st.session_state["all_types_inputs"][idx] = input_data
-                st.session_state["all_types_labels"][idx] = type_label
-                st.session_state["edit_index"] = None
-                st.success(f"✏️ Updated {type_label}")
+def calc_type_tv(data):
+    lines = []
 
-    st.markdown("---")
-    st.header("🗂 Manage Added Modules")
-    for i, tname in enumerate(st.session_state["all_types_labels"]):
-        st.write(f"{i+1}. {tname}")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("✏ Edit", key=f"edit_{i}"):
-                st.session_state["edit_index"] = i
-                st.rerun()
-        with col2:
-            if st.button("📄 Duplicate", key=f"dup_{i}"):
-                st.session_state["all_types_inputs"].append(
-                    st.session_state["all_types_inputs"][i].copy()
-                )
-                st.session_state["all_types_labels"].append(tname)
-        with col3:
-            if st.button("🗑 Delete", key=f"del_{i}"):
-                st.session_state["all_types_inputs"].pop(i)
-                st.session_state["all_types_labels"].pop(i)
-                if st.session_state["edit_index"] == i:
-                    st.session_state["edit_index"] = None
-                st.rerun()
+    # Material 1 – Rafters
+    lines.append("Material 1 – Rafters")
+    lines.append(f"• 1 pc — {int(data["rft_height"])}× {int(data["rft_width"])} - {int(data["rlam_height"]) - 2}× {int(data["rlam_width"]) - 2}")
+    lines.append(f"• Multiple Rafter Pieces — {int(data["tv_height"] - data["draw_height"] - data["bos_height"] - data["blam_height"])}× {int(data["tv_width"] - data["rft_width"] - data["ros_width"])}")
 
-# --- Main area: Outputs ---
-if st.session_state["all_types_inputs"]:
-    st.header("📋 All Materials by Module Type")
-    for i, tname in enumerate(st.session_state["all_types_labels"]):
-        st.subheader(f"{tname} — Option {i+1}")
-        calc_fn = type_fns[tname][1]
-        image_path = type_fns[tname][2]
-        cols = st.columns([1, 2])
-        with cols[0]:
-            st.image(image_path, caption=tname, use_container_width ='always')
-        with cols[1]:
-            mats = calc_fn(st.session_state["all_types_inputs"][i])
-            for line in mats:
-                st.write("- " + line)
-        st.markdown("---")
-else:
-    st.info("No Modules added yet. Use the sidebar to add one.")
+
+    # Material 2 – Main Panels
+    lines.append("Material 2 – White Barley")
+    lines.append(f"• 1 pc — {int(data["blam_height"])}× {int(data["tv_width"]) - int(data["rft_width"])- int(data["blam_width"]) -int(data["ros_width"]) + 4}")
+    lines.append(f"• Drawer Doors {int(data["num_drawers"])} pcs : {int(data["draw_height"]- 20)}×{int(int((data["tv_width"] - data["rft_width"]))/int(data["num_drawers"]))}")
+
+
+    # Material 3 – Overlays
+    lines.append("Material 3 – Wooden Laminate")
+
+    lines.append(f"• Rafter Laminate 1 pc — {int(data["rlam_height"])}× {int(data["rlam_width"])}")
+    lines.append(f"• Barley Laminate 1 pc — {int(data["blam_height"])}× {int(data["blam_width"])}")
+    lines.append(f"• Right Open shelf Side 2 pc — {int(data["ros_height"])}× {int(data["ros_depth"])}")
+    lines.append(f"• Right Open shelf Back 1 pc — {int(data["ros_height"])}× {int(data["ros_width"])}")
+    lines.append(f"• Right Open shelf middle {int(data["num_selfs"])} pcs — {int(data["ros_width"] - 2 * 18)}× {int(data["ros_depth"] - 18)}")
+    lines.append(f"• Bottom Open Shelf Top 1 pc : {int(data["tv_width"] - data["rft_width"] - data["ros_width"] - 2)}×{int(data["ros_depth"]) - 1}")
+    lines.append(f"• Bottom Open Shelf side 2 pcs : {int(data["bos_height"]- 40)}×{int(data["ros_depth"]) - 1}")
+    lines.append(f"• Drawer Open Shelf Mid & Botom 2 pcs : {int(data["tv_width"] - data["rft_width"] - 2)}×{int(data["ros_depth"]) - 1}")
+    lines.append(f"• Drawer Shelf side {int(data["num_drawers"] + 1)} pcs : {int(data["draw_height"]- 40)}×{int(data["ros_depth"]) - 1}")
+    lines.append(f"• Drawer Side {int(data["num_drawers"]) * 2} pcs : {int(data["draw_height"]- 50)}×{int(data["ros_depth"])}")
+    lines.append(f"• Drawer Back {int(data["num_drawers"])} pcs : {int(data["draw_height"]- 50)}×{int((data["tv_width"] - data["rft_width"]))/int(data["num_drawers"]) - 5 * 18}")
+    lines.append(f"• Drawer Bottom {int(data["num_drawers"])} pcs : {int(data["ros_depth"]- 20)}×{int((data["tv_width"] - data["rft_width"]))/int(data["num_drawers"]) - 5 * 18}")
+
+  
+
+
+
+    return lines
