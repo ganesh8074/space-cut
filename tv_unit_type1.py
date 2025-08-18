@@ -47,21 +47,21 @@ def calc_type_tv(data):
 
     # Material 1 – Rafters
     lines.append("Material 1 – Rafters")
-    lines.append(f"• 1 pc — {int(data["rft_height"])}× {int(data["rft_width"])} - {int(data["rlam_height"]) - 2}× {int(data["rlam_width"]) - 2}")
+    lines.append(f"• Rafter Laminate 1 pc — {int(data["rft_height"])}× {int(data["rft_width"])} - {int(data["rlam_height"]) - 2}× {int(data["rlam_width"]) - 2}")
     lines.append(f"• Multiple Rafter Pieces — {int(data["tv_height"] - data["draw_height"] - data["bos_height"] - data["blam_height"])}× {int(data["tv_width"] - data["rft_width"] - data["ros_width"])}")
 
 
     # Material 2 – Main Panels
     lines.append("Material 2 – White Barley")
-    lines.append(f"• 1 pc — {int(data["blam_height"])}× {int(data["tv_width"]) - int(data["rft_width"])- int(data["blam_width"]) -int(data["ros_width"]) + 4}")
+    lines.append(f"• Barley Laminate pc — {int(data["blam_height"])}× {int(data["tv_width"]) - int(data["rft_width"])- int(data["blam_width"]) -int(data["ros_width"]) + 4}")
     lines.append(f"• Drawer Doors {int(data["num_drawers"])} pcs : {int(data["draw_height"]- 20)}×{int(int((data["tv_width"] - data["rft_width"]))/int(data["num_drawers"]))}")
 
 
     # Material 3 – Overlays
     lines.append("Material 3 – Wooden Laminate")
 
-    lines.append(f"• 1 pc — {int(data["rlam_height"])}× {int(data["rlam_width"])}")
-    lines.append(f"• 1 pc — {int(data["blam_height"])}× {int(data["blam_width"])}")
+    lines.append(f"• Rafter Laminate 1 pc — {int(data["rlam_height"])}× {int(data["rlam_width"])}")
+    lines.append(f"• Barley Laminate 1 pc — {int(data["blam_height"])}× {int(data["blam_width"])}")
     lines.append(f"• Right Open shelf Side 2 pc — {int(data["ros_height"])}× {int(data["ros_depth"])}")
     lines.append(f"• Right Open shelf Back 1 pc — {int(data["ros_height"])}× {int(data["ros_width"])}")
     lines.append(f"• Right Open shelf middle {int(data["num_selfs"])} pcs — {int(data["ros_width"] - 2 * 18)}× {int(data["ros_depth"] - 18)}")
