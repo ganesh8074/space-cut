@@ -4,6 +4,13 @@ import streamlit as st
 def form_type1(prefill=None, button_label="Save"):
     if prefill is None:
         prefill = {}
+    
+    outside_piece = st.selectbox(
+    "Which piece comes outside?",
+    options=["Side Panels", "Top Panel"],
+    index=0,
+    key="t1_outside_piece"
+    )
     length = st.number_input("Length (mm)", min_value=300.0, value=prefill.get("length", 1800.0), step=1.0, key="t1_length")
     depth = st.number_input("Depth (mm)", min_value=300.0, value=prefill.get("depth", 600.0), step=1.0, key="t1_depth")
     height = st.number_input("Height (mm)", min_value=900.0, value=prefill.get("height", 2140.0), step=1.0, key="t1_height")
@@ -19,7 +26,8 @@ def form_type1(prefill=None, button_label="Save"):
         "length": length, "depth": depth, "height": height,
         "mat_thick": mat_thick, "inside_lam": inside_lam,
         "outside_lam": outside_lam, "plinth": plinth,
-        "shelves": shelves, "drawers": drawers, "drawer_h": drawer_h
+        "shelves": shelves, "drawers": drawers, "drawer_h": drawer_h,
+        "outside_piece": outside_piece
     }
 
 def calc_type1(data):
@@ -28,11 +36,35 @@ def calc_type1(data):
     T_ALL = data["mat_thick"] + data["inside_lam"] + data["outside_lam"]
     out = []
 
-    out.append(f"Side Panels: 2 pcs — {mm(data['height'])} × {mm(data['depth'])}")
-    out.append(f"Top Panel: 1 pc — {mm(data['length'] - 2*T_ALL)} × {mm(data['depth'])}")
-    out.append(f"Bottom Panel: 1 pc — {mm(data['length'] - 2*T_ALL)} × {mm(data['depth'])}")
-    out.append(f"Back Panel (6mm): 1 pc — {mm(data['height'] - data['plinth'] - 2*groove_thick)} × {mm(data['length'] - 2*groove_thick)}")
-    out.append(f"Partition: 1 pcs — {mm(data['height']  - data['plinth'] - 2*T_ALL)} × {mm(data['depth'] - 2*T_ALL - groove_thick)}")
+    # Determine offset adjustments based on outside piece
+    if data["outside_piece"] == "Side Panels":
+        sph = data["height"] #side panel height
+        spd = data["depth"]
+        tpl = data["length"] - 2*T_ALL
+        tpd = data["depth"]
+        bpl = data["length"] - 2*T_ALL
+        bpd = data["depth"]
+        bkph = data["height"] - data["plinth"] - 2*groove_thick
+        bkpl = data["length"] - 2*groove_thick
+        pah = data["height"] - data["plinth"] - 2*T_ALL
+        pad = data["height"] - data["plinth"] - 2*T_ALL
+    elif data["outside_piece"] == "Top Panel":
+        sph = data["height"] - T_ALL
+        spd = data["depth"]
+        tpl = data["length"]
+        tpd = data["depth"]
+        bpl = data["length"] - 2*T_ALL
+        bpd = data["depth"]
+        bkph = data["height"] - data["plinth"] - 2*groove_thick
+        bkpl = data["length"] - 2*groove_thick
+        pah = data["height"] - data["plinth"] - 2*T_ALL
+        pad = data["height"] - data["plinth"] - 2*T_ALL
+
+    out.append(f"Side Panels: 2 pcs — {mm(sph)} × {mm(spd)}")
+    out.append(f"Top Panel: 1 pc — {mm(tpl)} × {mm(tpd)}")
+    out.append(f"Bottom Panel: 1 pc — {mm(bpl)} × {mm(bpd)}")
+    out.append(f"Back Panel (6mm): 1 pc — {mm(bkph)} × {mm(bkpl)}")
+    out.append(f"Partition: 1 pcs — {mm(pah)} × {mm(pad)}")
 
 
     if data["shelves"] > 0:
@@ -50,10 +82,10 @@ def calc_type1(data):
         out.append(f"Drawer Back: {data['drawers']} pcs — {mm(shelf_len - 5*T_ALL)} × {mm(data['drawer_h'] - 2*T_ALL)}")
         out.append(f"Drawer Front: {data['drawers']} pcs — {mm(shelf_len - 5*T_ALL) } × {mm((data['drawer_h'] - 2*T_ALL)/2)}")
         out.append(f"Drawer Bottoms - (6mm): {data['drawers']} pcs — {mm(shelf_len - 3*T_ALL)} × {mm(data['depth'] - 3*T_ALL)}")
-        out.append(f"Side Extra Pieces: {data['drawers']*3} pcs — {mm(drawer_side) } × {mm(data['drawer_h'] - T_ALL)}")
-        out.append(f"Front Extra Pieces: {data['drawers']} pcs — {mm(shelf_len - 1*T_ALL) } × {mm(data['drawer_h'] - T_ALL)}")
+        out.append(f"Drawer Side Extra Pieces: {data['drawers']*3} pcs — {mm(drawer_side) } × {mm(data['drawer_h'] - T_ALL)}")
+        out.append(f"Drawer Front Expo Pieces: {data['drawers']} pcs — {mm(shelf_len - 1*T_ALL) } × {mm(data['drawer_h'] - T_ALL)}")
        
-    out.append(f"Front Extra Pieces on Down: 1 pcs — {mm(data['length'] - 2*T_ALL + 2)} × {data["plinth"]}")
+    out.append(f"Front Expo Pieces on Down: 1 pcs — {mm(data['length'] - 2*T_ALL + 2)} × {data["plinth"]}")
 
 
 
