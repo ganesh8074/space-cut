@@ -6,11 +6,23 @@ def form_type1(prefill=None, button_label="Save"):
         prefill = {}
     
     outside_piece = st.selectbox(
-    "Which piece comes outside?",
-    options=["Side Panels", "Top Panel"],
-    index=0,
-    key="t1_outside_piece"
+        "Which piece comes outside?",
+        options=["Side Panels", "Top Panel"],
+        index=0,
+        key="t1_outside_piece"
     )
+    door_type = st.selectbox(
+        "Type of Door",
+        options=["Normal", "Sliding"],
+        index=0,
+        key="t1_doortype"
+    )
+    if door_type == "Sliding":
+        overlap = st.number_input("Sliding Door Overlap (mm)", min_value=0.0, value=prefill.get("overlap", 25.0), step=1.0, key="t1_overlap")
+        track_clearance = st.number_input("Track Clearance (Top + Bottom, mm)", min_value=0.0, value=prefill.get("track_clearance", 10.0), step=0.5, key="t1_track_clearance")
+    else:
+        overlap = 0.0
+        track_clearance = 0.0
     length = st.number_input("Length (mm)", min_value=300.0, value=prefill.get("length", 1800.0), step=1.0, key="t1_length")
     depth = st.number_input("Depth (mm)", min_value=300.0, value=prefill.get("depth", 600.0), step=1.0, key="t1_depth")
     height = st.number_input("Height (mm)", min_value=900.0, value=prefill.get("height", 2140.0), step=1.0, key="t1_height")
@@ -27,7 +39,8 @@ def form_type1(prefill=None, button_label="Save"):
         "mat_thick": mat_thick, "inside_lam": inside_lam,
         "outside_lam": outside_lam, "plinth": plinth,
         "shelves": shelves, "drawers": drawers, "drawer_h": drawer_h,
-        "outside_piece": outside_piece
+        "outside_piece": outside_piece, "door_type": door_type,
+        "overlap": overlap, "track_clearance": track_clearance
     }
 
 def calc_type1(data):
@@ -72,9 +85,17 @@ def calc_type1(data):
         shelf_dep = data["depth"] - 2*T_ALL - groove_thick
         out.append(f"Shelves: {data['shelves']} pcs — {mm(shelf_len)} × {mm(shelf_dep)}")
 
-    door_w = (data["length"] / 2) - (2 * data["outside_lam"])
-    door_h = data["height"] - data["plinth"]
-    out.append(f"Doors: 2 pcs — {mm(door_h)} × {mm(door_w)}")
+        door_h = data["height"] - data["plinth"]
+
+    if data["door_type"] == "Normal":
+        door_w = (data["length"] / 2) - (2 * data["outside_lam"])
+        out.append(f"Doors (Normal): 2 pcs — {mm(door_h)} × {mm(door_w)}")
+
+    elif data["door_type"] == "Sliding":
+        door_w = (data["length"] / 2) + data["overlap"] - (2 * data["outside_lam"])
+        clear_h = door_h - data["track_clearance"]
+        out.append(f"Doors (Sliding): 2 pcs — {mm(clear_h)} × {mm(door_w)}")
+
 
     if data["drawers"] > 0:
         drawer_side = data["depth"] - 4*T_ALL - groove_thick
