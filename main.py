@@ -1,0 +1,139 @@
+import streamlit as st
+import wardrobe_2door
+import wardrobe_type2
+import wardrobe_type3
+import wardrobe_type4
+import tv_unit_type1
+import wardrobe_2door_slide
+
+# --- Map wardrobe types to their form/calc functions and image paths ---
+# image_paths can be 1 or 2 paths; both will be shown one below the other.
+type_fns = {
+    "2-Door Normal": (
+        wardrobe_2door.form_type1,
+        wardrobe_2door.calc_type1,
+        ["2door.jpg"]  # <— add second image if available
+    ),
+    "2-Door Sliding": (
+        wardrobe_2door_slide.form_type1,
+        wardrobe_2door_slide.calc_type1,
+        ["2door_slide.png", "2door_slide_2.png"]
+    ),
+    "3-Door Cupboard Type 1": (
+        wardrobe_type2.form_type2,
+        wardrobe_type2.calc_type2,
+        ["3door.png"]  # single image is fine
+    ),
+    "3-Door Cupboard Type 2": (
+        wardrobe_type3.form_type3,
+        wardrobe_type3.calc_type3,
+        ["3door_2.PNG"]
+    ),
+    "4-Door Cupboard Type 1": (
+        wardrobe_type4.form_type4,
+        wardrobe_type4.calc_type4,
+        ["4door_1.png"]
+    ),
+    "TV Unit Type 1": (
+        tv_unit_type1.form_type_tv,
+        tv_unit_type1.calc_type_tv,
+        ["tvunit1.png", "tvunit1_sections.png"]
+    ),
+}
+
+st.set_page_config(page_title=" Multi-Type Material Calculator", layout="wide")
+st.title("🛠️ Multi-Type Cut Piece Calculator")
+
+# --- Session state init ---
+if "all_types_inputs" not in st.session_state:
+    st.session_state["all_types_inputs"] = []
+    st.session_state["all_types_labels"] = []
+if "edit_index" not in st.session_state:
+    st.session_state["edit_index"] = None
+
+# --- Sidebar: Add/Edit/Manage ---
+with st.sidebar:
+    st.header("➕ Add New / Edit")
+
+    # If editing, lock type and prefill fields
+    if st.session_state["edit_index"] is not None:
+        st.warning(f"✏ Editing Option {st.session_state['edit_index'] + 1}")
+        type_label = st.session_state["all_types_labels"][st.session_state["edit_index"]]
+        prefill = st.session_state["all_types_inputs"][st.session_state["edit_index"]]
+    else:
+        type_label = st.selectbox("Module Type", list(type_fns.keys()), key="sidebar_type")
+        prefill = {}
+
+    form_fn, _, _ = type_fns[type_label]
+
+    with st.form("type_form"):
+        button_label = "Update" if st.session_state["edit_index"] is not None else "Add"
+        submitted, input_data = form_fn(prefill, button_label)
+        if submitted:
+            if st.session_state["edit_index"] is None:
+                # Add new entry
+                st.session_state["all_types_inputs"].append(input_data)
+                st.session_state["all_types_labels"].append(type_label)
+                st.success(f"✅ Added {type_label}")
+            else:
+                # Update existing
+                idx = st.session_state["edit_index"]
+                st.session_state["all_types_inputs"][idx] = input_data
+                st.session_state["all_types_labels"][idx] = type_label
+                st.session_state["edit_index"] = None
+                st.success(f"✏️ Updated {type_label}")
+
+    st.markdown("---")
+    st.header("🗂 Manage Added Modules")
+    for i, tname in enumerate(st.session_state["all_types_labels"]):
+        st.write(f"{i+1}. {tname}")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("✏ Edit", key=f"edit_{i}"):
+                st.session_state["edit_index"] = i
+                st.rerun()
+        with col2:
+            if st.button("📄 Duplicate", key=f"dup_{i}"):
+                st.session_state["all_types_inputs"].append(
+                    st.session_state["all_types_inputs"][i].copy()
+                )
+                st.session_state["all_types_labels"].append(tname)
+        with col3:
+            if st.button("🗑 Delete", key=f"del_{i}"):
+                st.session_state["all_types_inputs"].pop(i)
+                st.session_state["all_types_labels"].pop(i)
+                if st.session_state["edit_index"] == i:
+                    st.session_state["edit_index"] = None
+                st.rerun()
+
+# --- Main area: Outputs ---
+if st.session_state["all_types_inputs"]:
+    st.header("📋 All Materials by Module Type in mm")
+    for i, tname in enumerate(st.session_state["all_types_labels"]):
+        st.subheader(f"{tname} — Option {i+1}")
+        calc_fn = type_fns[tname][1]
+        image_paths = type_fns[tname][2]
+
+        cols = st.columns([1, 2])
+        with cols[0]:
+            # Always treat as a list; show one below the other
+            if isinstance(image_paths, str):
+                image_paths = [image_paths]
+            for p in image_paths:
+                st.image(p, caption=tname, use_container_width=True)
+
+        with cols[1]:
+            mats = calc_fn(st.session_state["all_types_inputs"][i])
+            for line in mats:
+                st.write("- " + line)
+
+            # Add download button for 2-Door Sliding
+            if tname == "2-Door Sliding":
+                if hasattr(wardrobe_2door_slide, "get_cutlist_df"):
+                    df = wardrobe_2door_slide.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "wardrobe_2door_sliding_cutlist.csv", "text/csv")
+        st.markdown("---")
+else:
+    st.info("No Modules added yet. Use the sidebar to add one.")
