@@ -37,7 +37,7 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     if prefill is None:
         prefill = {}
 
-    st.subheader("2-Door Sliding Wardrobe – Inputs")
+    st.subheader("2-Door Wardrobe – Inputs")
 
 
     height = st.number_input("Height (mm)", 1000.0, 4200.0,
@@ -193,6 +193,8 @@ def calc_type1(d: Dict) -> List[str]:
     door_w = (L - 2*WOOD)/2
     out.append(_fmt("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
 
+    out.append(_fmt("Bottom SKT", 1, P, L, f"{WOOD}mm core"))
+
     # Fixed shelf across carcass (between inside faces / includes partition allowance)
     shelf_len = (L - 3*WOOD_OUT)/2
     shelf_w   = D - B - 5*WOOD
@@ -276,6 +278,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     door_h = H - P - 3*WOOD_IN_OUT
     door_w = (L - 2*WOOD)/2
     rows.append(_row("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
+
+    rows.append(_row("Bottom SKT", 1, P, L, f"{WOOD}mm core"))
 
     # Fixed shelf across carcass (between inside faces / includes partition allowance)
     shelf_len = (L - 3*WOOD_OUT)/2

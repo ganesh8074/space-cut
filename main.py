@@ -1,8 +1,8 @@
 import streamlit as st
 import wardrobe_2door
-import wardrobe_type2
+import wardrobe_1door
 import wardrobe_type3
-import wardrobe_type4
+import loft
 import tv_unit_type1
 import wardrobe_2door_slide
 
@@ -19,20 +19,20 @@ type_fns = {
         wardrobe_2door_slide.calc_type1,
         ["2door_slide.png", "2door_slide_2.png"]
     ),
-    "3-Door Cupboard Type 1": (
-        wardrobe_type2.form_type2,
-        wardrobe_type2.calc_type2,
-        ["3door.png"]  # single image is fine
+    "1-Door Wardrobe": (
+        wardrobe_1door.form_type1,
+        wardrobe_1door.calc_type1,
+        ["1door.PNG", "1door_2.PNG"]  # single image is fine
     ),
     "3-Door Cupboard Type 2": (
         wardrobe_type3.form_type3,
         wardrobe_type3.calc_type3,
         ["3door_2.PNG"]
     ),
-    "4-Door Cupboard Type 1": (
-        wardrobe_type4.form_type4,
-        wardrobe_type4.calc_type4,
-        ["4door_1.png"]
+    "Wardrobe Loft ": (
+        loft.form_type1,
+        loft.calc_type1,
+        ["loft1.png", "loft2.png"]
     ),
     "TV Unit Type 1": (
         tv_unit_type1.form_type_tv,

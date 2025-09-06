@@ -7,7 +7,7 @@ import streamlit as st
 DEFAULTS = {
     # construction
     "wood_thick": 18.0,       # carcass core (MR/HDHMR) thickness
-    "inside_lam": 0.8,        # laminate on inner faces
+    "inside_lam": 1,        # laminate on inner faces
     "outside_lam": 2.0,       # laminate on outer faces
     "back_thick": 6.0,        # back board
     "plinth": 100.0,          # skirting height
@@ -16,20 +16,9 @@ DEFAULTS = {
 
     # storage
     "shelves": 4,
-    "drawers": 2,
+    "drawers": 1,
     "draw_height": 150.0,
-    "have_center_partition": True,  # typical for long wardrobes
 
-    # sliding hardware
-    "door_thick": 18.0,       # shutter board
-    "overlap": 60.0,          # total panel overlap (distributed across leaves)
-    "top_track_h": 80.0,      # top track + clearance
-    "bottom_track_h": 45.0,   # bottom track + clearance
-    "running_clear": 10.0,    # extra running play in height
-    "stile_side_clear": 3.0,  # side clearance between leaf & gable (per side)
-
-    # back splitting
-    "back_split_max": 1160.0,
 }
 
 # ---------------- UI (all vertical, one-by-one) ----------------
@@ -37,16 +26,16 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     if prefill is None:
         prefill = {}
 
-    st.subheader("2-Door Sliding Wardrobe – Inputs")
+    st.subheader("1-Door Wardrobe – Inputs")
 
 
-    height = st.number_input("Height (mm)", 1000.0, 4200.0,
+    height = st.number_input("Height (mm)", 100.0, 4200.0,
                              value=float(prefill.get("height", 2075.0)), step=1.0, key="s_height")
     
-    length = st.number_input("Width (mm)", 1200.0, 5000.0,
-                             value=float(prefill.get("length", 2350.0)), step=1.0, key="s_len")
+    length = st.number_input("Width (mm)", 100.0, 5000.0,
+                             value=float(prefill.get("length", 600.0)), step=1.0, key="s_len")
     
-    depth  = st.number_input("Depth (mm)", 450.0, 800.0,
+    depth  = st.number_input("Depth (mm)", 100.0, 800.0,
                              value=float(prefill.get("depth", 600.0)), step=1.0, key="s_depth")
 
     shelves = st.number_input("Horizontal Shelves (qty)", 0, 16,
@@ -80,33 +69,6 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
                                 index=0 if prefill.get("side_outside", DEFAULTS["side_outside"]) else 1,
                                 key="s_side_out").startswith("Side")
 
-    # have_center_partition = st.checkbox("Center Partition",
-    #                                     value=bool(prefill.get("have_center_partition", DEFAULTS["have_center_partition"])),
-    #                                     key="s_has_part")
-
-    # top_track_h = st.number_input("Top Track Height (mm)", 40.0, 120.0,
-    #                               value=float(prefill.get("top_track_h", DEFAULTS["top_track_h"])),
-    #                               step=1.0, key="s_ttrack")
-
-    # bottom_track_h = st.number_input("Bottom Track Height (mm)", 20.0, 120.0,
-    #                                  value=float(prefill.get("bottom_track_h", DEFAULTS["bottom_track_h"])),
-    #                                  step=1.0, key="s_btrack")
-
-    # running_clear = st.number_input("Running Clearance (mm)", 0.0, 20.0,
-    #                                 value=float(prefill.get("running_clear", DEFAULTS["running_clear"])),
-    #                                 step=0.5, key="s_runclr")
-
-    # door_thick = st.number_input("Door Thickness (mm)", 12.0, 25.0,
-    #                              value=float(prefill.get("door_thick", DEFAULTS["door_thick"])), step=0.5, key="s_dth")
-
-    # overlap = st.number_input("Leaf Overlap (mm)", 20.0, 120.0,
-    #                           value=float(prefill.get("overlap", DEFAULTS["overlap"])),
-    #                           step=1.0, key="s_overlap")
-
-    # stile_side_clear = st.number_input("Side Clearance (per side, mm)", 0.0, 10.0,
-    #                                    value=float(prefill.get("stile_side_clear", DEFAULTS["stile_side_clear"])),
-    #                                    step=0.5, key="s_sideclr")
-
     submitted = st.form_submit_button(button_label)
 
     data = dict(
@@ -115,10 +77,6 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
         back_thick=back_thick, plinth=plinth, groove=groove,
         side_outside=side_outside, shelves=shelves, drawers=drawers,
         draw_height=draw_height
-        # have_center_partition=have_center_partition,
-        # top_track_h=top_track_h, bottom_track_h=bottom_track_h, running_clear=running_clear,
-        # door_thick=door_thick, overlap=overlap, stile_side_clear=stile_side_clear,
-        # back_split_max=float(prefill.get("back_split_max", DEFAULTS["back_split_max"]))
     )
     return submitted, data
 
@@ -150,15 +108,7 @@ def calc_type1(d: Dict) -> List[str]:
     shelves = int(d["shelves"])
     drawers = int(d["drawers"])
     drawer_height = float(d["draw_height"])
-    # have_center_partition = bool(d["have_center_partition"])
-    # top_track_h = float(d["top_track_h"])
-    # bottom_track_h = float(d["bottom_track_h"])
-    # running_clear = float(d["running_clear"])
-    # door_thick = float(d["door_thick"])
-    # overlap = float(d["overlap"])
-    # side_clear = float(d["stile_side_clear"])
-    # back_split_max = float(d["back_split_max"])
-
+   
     WOOD_IN = WOOD + IN  #Wood + Inside laminate
     WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
     WOOD_IN_OUT = WOOD + IN + OUT  #Wood + both laminates
@@ -179,26 +129,17 @@ def calc_type1(d: Dict) -> List[str]:
 
     # Back panel(s): sit in grooves; height reduced by grooves on top/bottom
     back_h = H - P - (2*(WOOD_IN - groove))
-    back_l = (L - 2*WOOD_OUT - WOOD + 4*groove)/2
+    back_l = (L - WOOD_OUT)
     out.append(_fmt(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
 
-
-    # Center partition (meets top/bottom **inside faces**)
-    #if have_center_partition:
-    part_h = H - P - 2*WOOD_OUT
-    part_w = D - B - 5*WOOD
-    out.append(_fmt("Center Partition", 1, part_h, part_w, f"{WOOD}mm core"))
-
-    door_h = H - P - 3*WOOD_IN_OUT
-    door_w = (L + WOOD)/2
-    out.append(_fmt("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
+    door_h = H - P - WOOD_IN_OUT
+    out.append(_fmt("Doors", 1, door_h, L, f"{WOOD}mm core"))
 
     out.append(_fmt("Bottom SKT", 1, P, L, f"{WOOD}mm core"))
 
-
     # Fixed shelf across carcass (between inside faces / includes partition allowance)
-    shelf_len = (L - 3*WOOD_OUT)/2
-    shelf_w   = D - B - 5*WOOD
+    shelf_len = (L - 2*WOOD_OUT)
+    shelf_w   = D - B - 3*WOOD
     out.append(_fmt("Horizontal Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
 
     # # Adjustable shelves (per bay)
@@ -211,15 +152,15 @@ def calc_type1(d: Dict) -> List[str]:
 
     if drawers > 0:
         draw_s_h = drawer_height - 2*WOOD_IN
-        draw_s_d = D - B - 5*WOOD
-        draw_f_h = drawer_height - 2*WOOD_IN
-        draw_f_w = (L - 26*WOOD)/4
+        draw_s_d = D - B - 3*WOOD
+        draw_f_h = drawer_height - 2*WOOD
+        draw_f_w = (L - 4*WOOD)
         draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 26*WOOD)/4
-        draw_bo_w = (L -  25*WOOD)/4
-        draw_bo_d = D - B - 5*WOOD
+        draw_b_w = (L - 4*WOOD)
+        draw_bo_w = (L -  3*WOOD)
+        draw_bo_d = D - B - 4*WOOD
         draw_fa_h = drawer_height - WOOD
-        draw_fa_w = (L - 12*WOOD_IN)/4
+        draw_fa_w = (L - WOOD_IN)
         out.append(_fmt("Drawer Side Panel", drawers*2, draw_s_h, draw_s_d, f"{WOOD}mm; groove"))
         out.append(_fmt("Drawer Front Panel", drawers, draw_f_h, draw_f_w, f"{WOOD}mm"))
         out.append(_fmt("Drawer Back Panel", drawers, draw_b_h, draw_b_w, f"{WOOD}mm"))
@@ -272,12 +213,12 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     # Center partition (meets top/bottom **inside faces**)
     #if have_center_partition:
-    part_h = H - P - 2*WOOD_OUT
+    part_h = H - P - WOOD
     part_w = D - B - 5*WOOD
     rows.append(_row("Center Partition", 1, part_h, part_w, f"{WOOD}mm core"))
 
     door_h = H - P - 3*WOOD_IN_OUT
-    door_w = (L + WOOD)/2
+    door_w = (L - 2*WOOD)/2
     rows.append(_row("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
 
     rows.append(_row("Bottom SKT", 1, P, L, f"{WOOD}mm core"))

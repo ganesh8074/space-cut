@@ -26,7 +26,7 @@ def form_type3(prefill=None, button_label="Save"):
 
 def calc_type3(data):
     def mm(val): return f"{round(val,1)} mm"
-    groove_thick = 6.0
+    groove_thick = 7.0
     T_ALL = data["mat_thick"] + data["inside_lam"] + data["outside_lam"]
     out = []
 
@@ -58,15 +58,15 @@ def calc_type3(data):
         out.append(f"Drawer Back: {data['drawers']} pcs — {mm(shelf_len - 5*T_ALL)} × {mm(data['drawer_h'] - 2*T_ALL)}")
         out.append(f"Drawer Front: {data['drawers']} pcs — {mm(shelf_len - 5*T_ALL) } × {mm((data['drawer_h'] - 2*T_ALL)/2)}")
         out.append(f"Drawer Bottoms - (6mm): {data['drawers']} pcs — {mm(shelf_len - 3*T_ALL)} × {mm(data['depth'] - 2*T_ALL)}")
-        out.append(f"Side Extra Pieces: {data['drawers']*3} pcs — {mm(drawer_side) } × {mm(data['drawer_h'] - T_ALL)}")
-        out.append(f"Front Extra Pieces: {data['drawers']} pcs — {mm(shelf_len - 1*T_ALL) } × {mm(data['drawer_h'] - T_ALL)}")
+        out.append(f"Drawer Side Extra Pieces: {data['drawers']*3} pcs — {mm(drawer_side) } × {mm(data['drawer_h'] - T_ALL)}")
+        out.append(f"Drawer Front Expo Pieces: {data['drawers']} pcs — {mm(shelf_len - 1*T_ALL) } × {mm(data['drawer_h'] - T_ALL)}")
     
 
 
 
 
     
-    out.append(f"Front Extra Pieces on Down: 1 pcs — {mm(data['length'] - 2*T_ALL + 2)} × {data["plinth"]}")
+    out.append(f"Front Expo Pieces on Down: 1 pcs — {mm(data['length'] - 2*T_ALL + 2)} × {data["plinth"]}")
 
     return out
 
