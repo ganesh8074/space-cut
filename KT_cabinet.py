@@ -13,11 +13,10 @@ DEFAULTS = {
     "plinth": 100.0,          # skirting height
     "groove": 7.0,            # groove depth for back/shelves
     "side_outside": True,     # sides outside top/bottom
-
+    "side_expo": False,       # side panel exposed (no laminate on one side)
     # storage
-    "shelves": 4,
-    "drawers": 1,
-    "draw_height": 150.0,
+    "shelves": 1,
+    "doors": 1,
 
 }
 
@@ -26,27 +25,24 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     if prefill is None:
         prefill = {}
 
-    st.subheader("Open shelf – Inputs")
+    st.subheader("Kitchen cabinet – Inputs")
 
 
     height = st.number_input("Height (mm)", 100.0, 4200.0,
-                             value=float(prefill.get("height", 2075.0)), step=1.0, key="s_height")
+                             value=float(prefill.get("height", 710.0)), step=1.0, key="s_height")
     
     length = st.number_input("Width (mm)", 100.0, 5000.0,
-                             value=float(prefill.get("length", 600.0)), step=1.0, key="s_len")
+                             value=float(prefill.get("length", 725.0)), step=1.0, key="s_len")
     
     depth  = st.number_input("Depth (mm)", 100.0, 800.0,
-                             value=float(prefill.get("depth", 600.0)), step=1.0, key="s_depth")
+                             value=float(prefill.get("depth", 580.0)), step=1.0, key="s_depth")
 
     shelves = st.number_input("Horizontal Shelves (qty)", 0, 16,
                               value=int(prefill.get("shelves", DEFAULTS["shelves"])), step=1, key="s_shelves")
-
-    drawers = st.number_input("Drawers (qty)", 0, 8,
-                              value=int(prefill.get("drawers", DEFAULTS["drawers"])), step=1, key="s_drawers")
-
-    draw_height = st.number_input("Drawer Height (mm)", 100.0, 525.0,
-                                 value=float(prefill.get("draw_height", DEFAULTS["draw_height"])), step=1.0, key="s_draw_h")
-
+    
+    doors = st.number_input("Cabinet Doors (qty)", 0, 16,
+                              value=int(prefill.get("doors", DEFAULTS["doors"])), step=1, key="s_doors")
+    
     # NEW: thicknesses split as core + inside/outside laminates
     wood_thick = st.number_input("Wood Thickness (mm)", 12.0, 25.0,
                                  value=float(prefill.get("wood_thick", DEFAULTS["wood_thick"])), step=0.5, key="s_core")
@@ -54,6 +50,9 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
                                  value=float(prefill.get("inside_lam", DEFAULTS["inside_lam"])), step=0.1, key="s_inlam")
     outside_lam = st.number_input("Outside Laminate Thickness (mm)", 0.0, 2.0,
                                   value=float(prefill.get("outside_lam", DEFAULTS["outside_lam"])), step=0.1, key="s_outlam")
+
+    plinth = st.number_input("Skirting / Plinth (mm)", 0.0, 200.0,
+                             value=float(prefill.get("plinth", DEFAULTS["plinth"])), step=1.0, key="s_plinth")
 
     back_thick = st.number_input("Back Thickness (mm)", 3.0, 9.0,
                                  value=float(prefill.get("back_thick", DEFAULTS["back_thick"])), step=0.5, key="s_bt")
@@ -66,14 +65,17 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
                                 index=0 if prefill.get("side_outside", DEFAULTS["side_outside"]) else 1,
                                 key="s_side_out").startswith("Side")
 
+    side_expo = st.checkbox("Side Panel Exposed",
+                                         value=bool(prefill.get("side_expo", DEFAULTS["side_expo"])),
+                                         key="s_side_expo")
+
     submitted = st.form_submit_button(button_label)
 
     data = dict(
         length=length, height=height, depth=depth,
         wood_thick=wood_thick, inside_lam=inside_lam, outside_lam=outside_lam,
-        back_thick=back_thick, groove=groove,
-        side_outside=side_outside, shelves=shelves, drawers=drawers,
-        draw_height=draw_height
+        back_thick=back_thick, groove=groove, doors=doors,
+        side_outside=side_outside, shelves=shelves, side_expo=side_expo, plinth=plinth
     )
     return submitted, data
 
@@ -94,11 +96,12 @@ def calc_type1(d: Dict) -> List[str]:
     IN = float(d["inside_lam"])
     OUT = float(d["outside_lam"])
     B = float(d["back_thick"])
+    P = float(d["plinth"])
     groove = float(d["groove"])
+    side_expo = bool(d["side_expo"])
     side_outside = bool(d["side_outside"])
     shelves = int(d["shelves"])
-    drawers = int(d["drawers"])
-    drawer_height = float(d["draw_height"])
+    doors = int(d["doors"])
    
     WOOD_IN = WOOD + IN  #Wood + Inside laminate
     WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
@@ -107,54 +110,37 @@ def calc_type1(d: Dict) -> List[str]:
     out: List[str] = []
 
     # --- carcass ---
-    side_h = H - OUT
+    side_l_h = H + P if side_expo else H
+    side_r_h = H
     side_w = D - OUT
-    out.append(_fmt("Left Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
-    out.append(_fmt("Right Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
+    out.append(_fmt("Left Panel", 1, side_l_h, side_w, f"{groove}mm - groove to back;"))
+    out.append(_fmt("Right Panel", 1, side_r_h, side_w, f"{groove}mm - groove to back;"))
 
     # Top/Bottom length is between **inside faces of sides**
     tb_len = (L - 2*WOOD_OUT) if side_outside else L
-    tb_w   = D - OUT
-    out.append(_fmt("Top Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-    out.append(_fmt("Bottom Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
+    t_w   = P - OUT
+    b_w  = D - OUT
+    out.append(_fmt("Top Front Ripper", 1, tb_len, t_w, f"{WOOD}mm core; groove to back"))
+    out.append(_fmt("Top Back Ripper", 1, tb_len, t_w, f"{WOOD}mm core"))
+    out.append(_fmt("Bottom Panel", 1, tb_len, b_w, f"{WOOD}mm core; groove to back"))
 
     # Back panel(s): sit in grooves; height reduced by grooves on top/bottom
-    back_h = H - (2*(WOOD_IN - groove))
-    back_l = (L - WOOD_OUT)
-    out.append(_fmt(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
+    back_h = H - (2*(WOOD_IN - groove))   
+    back_l = L - (2*(WOOD_IN - groove))
+    out.append(_fmt(f"Back ({int(B)}mm)", 1, back_h, back_l, f"{int(B)}mm"))
 
     if shelves > 0:
         # Fixed shelf across carcass (between inside faces / includes partition allowance)
         shelf_len = (L - 2*WOOD_OUT)
         shelf_w   = D - B
         out.append(_fmt("Horizontal Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
+    
+    if doors > 0:
+        # Fixed shelf across carcass (between inside faces / includes partition allowance)
+        door_h = H -2*OUT
+        door_w = (L - 2*doors*OUT)/doors
+        out.append(_fmt("Doors", doors, door_h, door_w, f"{WOOD}mm core"))
 
-    # # Adjustable shelves (per bay)
-    # if shelves > 0:
-    #     bays = 2 if have_center_partition else 1
-    #     # Each bay length inside = internal opening per bay minus the partition inner-face thickness at one side
-    #     shelf_len = tb_len / bays - (WOOD_IN if have_center_partition else 0)
-    #     shelf_w = D - B
-    #     out.append(_fmt("Adjustable Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
-    if drawers > 0:
-        draw_s_h = drawer_height - 3*WOOD_IN
-        draw_s_d = D - B - 2*WOOD
-        draw_f_h = drawer_height - 5*WOOD_OUT
-        draw_f_w = (L - 4*WOOD)/drawers
-        draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 7*WOOD)/drawers
-        draw_bo_w = (L - 7*WOOD)/drawers
-        draw_bo_d = D - B - 3*WOOD
-        draw_fa_h = drawer_height - 2*OUT
-        draw_fa_w = (L/drawers) - 2*OUT
-        out.append(_fmt("Drawer Side Panel", drawers*2, draw_s_h, draw_s_d, f"{WOOD}mm; groove"))
-        out.append(_fmt("Drawer Front Panel", drawers, draw_f_h, draw_f_w, f"{WOOD}mm"))
-        out.append(_fmt("Drawer Back Panel", drawers, draw_b_h, draw_b_w, f"{WOOD}mm"))
-        out.append(_fmt(f"Drawer Bottom ({int(B)}mm)", drawers, draw_bo_w, draw_bo_d, f"{int(B)}mm"))
-        out.append(_fmt("Drawer Fascia", drawers, draw_fa_h, draw_fa_w, "exposed"))
-        if drawers > 1:
-            out.append(_fmt("Vertical Shelfs", drawers - 1, drawer_height - 2*WOOD_OUT, D - B,))
 
     return out
 
@@ -167,66 +153,48 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     IN = float(d["inside_lam"])
     OUT = float(d["outside_lam"])
     B = float(d["back_thick"])
+    P = float(d["plinth"])
     groove = float(d["groove"])
+    side_expo = bool(d["side_expo"])
     side_outside = bool(d["side_outside"])
     shelves = int(d["shelves"])
-    drawers = int(d["drawers"])
-    drawer_height = float(d["draw_height"])
+    doors = int(d["doors"])
    
     WOOD_IN = WOOD + IN  #Wood + Inside laminate
     WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
     WOOD_IN_OUT = WOOD + IN + OUT  #Wood + both laminates
 
     rows = []
-
     # --- carcass ---
-    side_h = H - OUT
+    side_l_h = H + P if side_expo else H
+    side_r_h = H
     side_w = D - OUT
-    rows.append(_row("Left Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
-    rows.append(_row("Right Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
+    rows.append(_row("Left Panel", 1, side_l_h, side_w, f"{groove}mm - groove to back;"))
+    rows.append(_row("Right Panel", 1, side_r_h, side_w, f"{groove}mm - groove to back;"))
 
     # Top/Bottom length is between **inside faces of sides**
     tb_len = (L - 2*WOOD_OUT) if side_outside else L
-    tb_w   = D - OUT
-    rows.append(_row("Top Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-    rows.append(_row("Bottom Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
+    t_w   = P - OUT
+    b_w  = D - OUT
+    rows.append(_row("Top Front Ripper", 1, tb_len, t_w, f"{WOOD}mm core; groove to back"))
+    rows.append(_row("Top Back Ripper", 1, tb_len, t_w, f"{WOOD}mm core; groove to back"))
+    rows.append(_row("Bottom Panel", 1, tb_len, b_w, f"{WOOD}mm core; groove to back"))
 
     # Back panel(s): sit in grooves; height reduced by grooves on top/bottom
     back_h = H - (2*(WOOD_IN - groove))
-    back_l = (L - WOOD_OUT)
-    rows.append(_row(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
+    back_l = L - (2*(WOOD_IN - groove))
+    rows.append(_row(f"Back ({int(B)}mm)", 1, back_h, back_l, f"{int(B)}mm"))
 
     if shelves > 0:
         # Fixed shelf across carcass (between inside faces / includes partition allowance)
         shelf_len = (L - 2*WOOD_OUT)
         shelf_w   = D - B
         rows.append(_row("Horizontal Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
-    # # Adjustable shelves (per bay)
-    # if shelves > 0:
-    #     bays = 2 if have_center_partition else 1
-    #     # Each bay length inside = internal opening per bay minus the partition inner-face thickness at one side
-    #     shelf_len = tb_len / bays - (WOOD_IN if have_center_partition else 0)
-    #     shelf_w = D - B
-    #     out.append(_fmt("Adjustable Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
-    if drawers > 0:
-        draw_s_h = drawer_height - 3*WOOD_IN
-        draw_s_d = D - B - 2*WOOD
-        draw_f_h = drawer_height - 5*WOOD_OUT
-        draw_f_w = (L - 4*WOOD)/drawers
-        draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 7*WOOD)/drawers
-        draw_bo_w = (L - 7*WOOD)/drawers
-        draw_bo_d = D - B - 3*WOOD
-        draw_fa_h = drawer_height - 2*OUT
-        draw_fa_w = (L/drawers) - 2*OUT
-        rows.append(_row("Drawer Side Panel", drawers*2, draw_s_h, draw_s_d, f"{WOOD}mm; groove"))
-        rows.append(_row("Drawer Front Panel", drawers, draw_f_h, draw_f_w, f"{WOOD}mm"))
-        rows.append(_row("Drawer Back Panel", drawers, draw_b_h, draw_b_w, f"{WOOD}mm"))
-        rows.append(_row(f"Drawer Bottom ({int(B)}mm)", drawers, draw_bo_w, draw_bo_d, f"{int(B)}mm"))
-        rows.append(_row("Drawer Fascia", drawers, draw_fa_h, draw_fa_w, "exposed"))
-        if drawers > 1:
-            rows.append(_row("Vertical Shelfs", drawers - 1, drawer_height - 2*WOOD_OUT, D - B,))
+    
+    if doors > 0:
+        # Fixed shelf across carcass (between inside faces / includes partition allowance)
+        door_h = H -2*OUT
+        door_w = (L - 2*doors*OUT)/doors
+        rows.append(_row("Doors", doors, door_h, door_w, f"{WOOD}mm core"))
     
     return pd.DataFrame(rows)

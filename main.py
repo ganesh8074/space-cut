@@ -1,10 +1,15 @@
 import streamlit as st
 import wardrobe_2door
 import wardrobe_1door
-import wardrobe_type3
 import loft
 import tv_unit_type1
 import wardrobe_2door_slide
+import KT_cabinet
+import KT_bottle_po
+import KT_blind_cp
+import KT_3_tan
+import KT_sink
+import KT_wall_unit
 
 # --- Map wardrobe types to their form/calc functions and image paths ---
 # image_paths can be 1 or 2 paths; both will be shown one below the other.
@@ -24,20 +29,45 @@ type_fns = {
         wardrobe_1door.calc_type1,
         ["1door.PNG", "1door_2.PNG"]  # single image is fine
     ),
-    "3-Door Cupboard Type 2": (
-        wardrobe_type3.form_type3,
-        wardrobe_type3.calc_type3,
-        ["3door_2.PNG"]
-    ),
     "Wardrobe Loft ": (
         loft.form_type1,
         loft.calc_type1,
         ["loft1.png", "loft2.png"]
     ),
     "TV Unit Type 1": (
-        tv_unit_type1.form_type_tv,
-        tv_unit_type1.calc_type_tv,
-        ["tvunit1.png", "tvunit1_sections.png"]
+        tv_unit_type1.form_type1,
+        tv_unit_type1.calc_type1,
+        ["tvunit1.PNG", "tvunit2.PNG"]
+    ),
+    "Kitchen - Cabinet": (
+        KT_cabinet.form_type1,
+        KT_cabinet.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
+    ),
+     "Kitchen - BPO": (
+        KT_bottle_po.form_type1,
+        KT_bottle_po.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
+    ),
+    "Kitchen - 3 Tandems": (
+        KT_3_tan.form_type1,
+        KT_3_tan.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
+    ),
+    "Kitchen - Blind Corner": (
+        KT_blind_cp.form_type1,
+        KT_blind_cp.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
+    ),
+    "Kitchen - Sink": (
+        KT_sink.form_type1,
+        KT_sink.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
+    ),
+    "Kitchen - Wall Unit": (
+        KT_wall_unit.form_type1,
+        KT_wall_unit.calc_type1,
+        ["kt1.PNG", "kt2.PNG"]
     ),
 }
 
@@ -134,6 +164,61 @@ if st.session_state["all_types_inputs"]:
                     csv = df.to_csv(index=False).encode('utf-8')
                     st.download_button("Download Cutlist as CSV", csv,
                                        "wardrobe_2door_sliding_cutlist.csv", "text/csv")
+            elif tname == "1-Door Wardrobe":
+                if hasattr(wardrobe_1door, "get_cutlist_df"):
+                    df = wardrobe_1door.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "wardrobe_1door_cutlist.csv", "text/csv")
+            elif tname == "Wardrobe Loft ":
+                if hasattr(loft, "get_cutlist_df"):
+                    df = loft.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "wardrobe_loft_cutlist.csv", "text/csv")
+            elif tname == "TV Unit Type 1":
+                if hasattr(tv_unit_type1, "get_cutlist_df"):
+                    df = tv_unit_type1.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "tv_unit_type1_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - Cabinet":
+                if hasattr(KT_cabinet, "get_cutlist_df"):
+                    df = KT_cabinet.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_cabinet_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - BPO":
+                if hasattr(KT_bottle_po, "get_cutlist_df"):
+                    df = KT_bottle_po.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_bpo_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - 3 Tandems":
+                if hasattr(KT_3_tan, "get_cutlist_df"):
+                    df = KT_3_tan.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_3_tandems_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - Blind Corner":
+                if hasattr(KT_blind_cp, "get_cutlist_df"):
+                    df = KT_blind_cp.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_blind_corner_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - Sink":
+                if hasattr(KT_sink, "get_cutlist_df"):
+                    df = KT_sink.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_sink_cutlist.csv", "text/csv")
+            elif tname == "Kitchen - Wall Unit":
+                if hasattr(KT_wall_unit, "get_cutlist_df"):
+                    df = KT_wall_unit.get_cutlist_df(st.session_state["all_types_inputs"][i])
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("Download Cutlist as CSV", csv,
+                                       "kitchen_wall_unit_cutlist.csv", "text/csv")
+
         st.markdown("---")
 else:
     st.info("No Modules added yet. Use the sidebar to add one.")

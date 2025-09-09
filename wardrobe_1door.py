@@ -116,7 +116,7 @@ def calc_type1(d: Dict) -> List[str]:
     out: List[str] = []
 
     # --- carcass ---
-    side_h = H - OUT
+    side_h = H
     side_w = D - OUT
     out.append(_fmt("Left Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
     out.append(_fmt("Right Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
