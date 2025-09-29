@@ -1,14 +1,15 @@
-# wardrobe_2door_slide.py
+# ------- keep everything above as-is, then REPLACE calc_type1() and get_cutlist_df() -------
 import math
 from typing import Dict, List, Tuple
 import pandas as pd
 import streamlit as st
 
+
 DEFAULTS = {
     # construction
     "wood_thick": 18.0,       # carcass core (MR/HDHMR) thickness
-    "inside_lam": 0.8,        # laminate on inner faces
-    "outside_lam": 2.0,       # laminate on outer faces
+    "inside_lam": 1.0,        # laminate on inner faces
+    "outside_lam": 1.0,       # laminate on outer faces
     "back_thick": 6.0,        # back board
     "plinth": 100.0,          # skirting height
     "groove": 7.0,            # groove depth for back/shelves
@@ -121,114 +122,22 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
         # back_split_max=float(prefill.get("back_split_max", DEFAULTS["back_split_max"]))
     )
     return submitted, data
+# ---- REPLACE calc_type1() and get_cutlist_df() in wardrobe_2door_slide.py ----
 
-# --------------- helpers ---------------
-def _fmt(name: str, qty: int, h: float, w: float, notes: str="") -> str:
-    h = round(h, 1); w = round(w, 1)
-    return f"{name}: {qty} pcs — {h} × {w} mm" + (f" — {notes}" if notes else "")
+def _dims(h, w):
+    # compact dimension string (no qty, mm implied)
+    return f"{round(h,1)} × {round(w,1)}"
 
-def _row(name, qty, h, w, notes=""):
-    return dict(item=name, qty=int(qty), height_mm=round(h, 1), width_mm=round(w, 1), notes=notes)
+def _dims_2(h, w, qty):
+    # compact dimension string with qty (mm implied)
+    return f"{round(h,1)} × {round(w,1)} = {qty} qty"
 
-def _split_back(length: float, back_split_max: float):
-    n = max(1, math.ceil(length / back_split_max))
-    each = length / n
-    return n, each
-
-# --------------- calculations ---------------
-def calc_type1(d: Dict) -> List[str]:
-    L = float(d["length"])
-    H = float(d["height"])
-    D = float(d["depth"])
-    WOOD = float(d["wood_thick"])
-    IN = float(d["inside_lam"])
-    OUT = float(d["outside_lam"])
-    B = float(d["back_thick"])
-    P = float(d["plinth"])
-    groove = float(d["groove"])
-    side_outside = bool(d["side_outside"])
-    shelves = int(d["shelves"])
-    drawers = int(d["drawers"])
-    drawer_height = float(d["draw_height"])
-    # have_center_partition = bool(d["have_center_partition"])
-    # top_track_h = float(d["top_track_h"])
-    # bottom_track_h = float(d["bottom_track_h"])
-    # running_clear = float(d["running_clear"])
-    # door_thick = float(d["door_thick"])
-    # overlap = float(d["overlap"])
-    # side_clear = float(d["stile_side_clear"])
-    # back_split_max = float(d["back_split_max"])
-
-    WOOD_IN = WOOD + IN  #Wood + Inside laminate
-    WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
-    WOOD_IN_OUT = WOOD + IN + OUT  #Wood + both laminates
-
-    out: List[str] = []
-
-    # --- carcass ---
-    side_h = H - OUT
-    side_w = D - OUT
-    out.append(_fmt("Left Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
-    out.append(_fmt("Right Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
-
-    # Top/Bottom length is between **inside faces of sides**
-    tb_len = (L - 2*WOOD_OUT) if side_outside else L
-    tb_w   = D - OUT
-    out.append(_fmt("Top Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-    out.append(_fmt("Bottom Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-
-    # Back panel(s): sit in grooves; height reduced by grooves on top/bottom
-    back_h = H - P - (2*(WOOD_IN - groove))
-    back_l = (L - 2*WOOD_OUT - WOOD + 4*groove)/2
-    out.append(_fmt(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
-
-
-    # Center partition (meets top/bottom **inside faces**)
-    #if have_center_partition:
-    part_h = H - P - 2*WOOD_OUT
-    part_w = D - B - 5*WOOD
-    out.append(_fmt("Center Partition", 1, part_h, part_w, f"{WOOD}mm core"))
-
-    door_h = H - P - WOOD_IN_OUT
-    door_w = (L - 2*WOOD)/2
-    out.append(_fmt("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
-
-    out.append(_fmt("Bottom SKT", 1, P, L, f"{WOOD}mm core"))
-
-    # Fixed shelf across carcass (between inside faces / includes partition allowance)
-    shelf_len = (L - 3*WOOD_OUT)/2
-    shelf_w   = D - B - 5*WOOD
-    out.append(_fmt("Horizontal Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
-    # # Adjustable shelves (per bay)
-    # if shelves > 0:
-    #     bays = 2 if have_center_partition else 1
-    #     # Each bay length inside = internal opening per bay minus the partition inner-face thickness at one side
-    #     shelf_len = tb_len / bays - (WOOD_IN if have_center_partition else 0)
-    #     shelf_w = D - B
-    #     out.append(_fmt("Adjustable Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
-    if drawers > 0:
-        draw_s_h = drawer_height - 2*WOOD_IN
-        draw_s_d = D - B - 5*WOOD
-        draw_f_h = drawer_height - 2*WOOD_IN
-        draw_f_w = (L - 26*WOOD)/4
-        draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 26*WOOD)/4
-        draw_bo_w = (L -  25*WOOD)/4
-        draw_bo_d = D - B - 5*WOOD
-        draw_fa_h = drawer_height - WOOD
-        draw_fa_w = (L - 12*WOOD_IN)/4
-        out.append(_fmt("Drawer Side Panel", drawers*2, draw_s_h, draw_s_d, f"{WOOD}mm; groove"))
-        out.append(_fmt("Drawer Front Panel", drawers, draw_f_h, draw_f_w, f"{WOOD}mm"))
-        out.append(_fmt("Drawer Back Panel", drawers, draw_b_h, draw_b_w, f"{WOOD}mm"))
-        out.append(_fmt(f"Drawer Bottom ({int(B)}mm)", drawers, draw_bo_w, draw_bo_d, f"{int(B)}mm"))
-        out.append(_fmt("Drawer Fascia", drawers, draw_fa_h, draw_fa_w, "exposed"))
-        out.append(_fmt("Drawer Dummy", drawers*2, draw_s_h, draw_s_d,))
-
-
-    return out
-
+def calc_type1(d: Dict):
+    """
+    Keep for backward compatibility, but don't emit bullet strings.
+    The main app will render the DataFrame returned by get_cutlist_df().
+    """
+    return []  # we want the table, not bullets
 
 def get_cutlist_df(d: Dict) -> pd.DataFrame:
     L = float(d["length"])
@@ -247,113 +156,186 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     rows = []
 
-    WOOD_IN = WOOD + IN  #Wood + Inside laminate
-    WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
-    WOOD_IN_OUT = WOOD + IN + OUT  #Wood + both laminates
+    WOOD_IN = WOOD + IN
+    WOOD_OUT = WOOD + OUT
+    WOOD_IN_OUT = WOOD + IN + OUT
 
-    # --- carcass ---
+    # sides
     side_h = H - OUT
     side_w = D - OUT
-    rows.append(_row("Left Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
-    rows.append(_row("Right Panel", 1, side_h, side_w, f"{groove}mm - groove to back;"))
+    for label in ["Left Panel", "Right Panel"]:
+        rows.append({
+            "Cut piece name": label,
+            "Wood": _dims(side_h, side_w),
+            "Colour laminate": _dims(side_h, side_w),   # outside
+            "White laminate": _dims(side_h, side_w),    # inside
+            "Colour edge bidding": round(H + D, 1),
+            "White edge bidding": round(D, 1),
+        })
 
-    # Top/Bottom length is between **inside faces of sides**
-    tb_len = (L - 2*WOOD_OUT) if side_outside else L
+    # top / bottom
+    tb_len = (L - 2*WOOD_IN_OUT - 2*IN) if side_outside else L
     tb_w   = D - OUT
-    rows.append(_row("Top Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-    rows.append(_row("Bottom Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
+    rows.append({
+        "Cut piece name": "Top Panel",
+        "Wood": _dims(tb_len, tb_w),
+        "Colour laminate": _dims(tb_len, tb_w),
+        "White laminate": _dims(tb_len, tb_w),
+        "Colour edge bidding": round(tb_len + 2*IN, 1),
+        "White edge bidding": round(2*D, 1),
+    })
+    rows.append({
+        "Cut piece name": "Bottom Panel",
+        "Wood": _dims(tb_len, tb_w),
+        "Colour laminate": "",                      # as per your earlier list
+        "White laminate": _dims(tb_len, tb_w),
+        "Colour edge bidding": 0.0,
+        "White edge bidding": round(2*D + tb_len + 2*IN, 1),   # white twice there
+    })
 
-    # Back panel(s): sit in grooves; height reduced by grooves on top/bottom
+    # back (in grooves)
     back_h = H - P - (2*(WOOD_IN - groove))
-    back_l = (L - 2*WOOD_OUT - WOOD + 4*groove)/2
-    rows.append(_row(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
+    back_l = (L - 3*WOOD + 4*groove)/2
+    rows.append({
+        "Cut piece name": f"Back ({int(B)}mm)",
+        "Wood": _dims_2(back_h, back_l, 2),   # 2 pcs implied
+        "Colour laminate": "",
+        "White laminate": _dims_2(back_h, back_l, 4),
+        "Colour edge bidding": 0.0,
+        "White edge bidding": 0.0,
+    })
 
 
-    # Center partition (meets top/bottom **inside faces**)
-    #if have_center_partition:
-    part_h = H - P - WOOD
-    part_w = D - B - 5*WOOD
-    rows.append(_row("Center Partition", 1, part_h, part_w, f"{WOOD}mm core"))
+    # center partition
+    part_h = H - P - WOOD_IN_OUT
+    part_w = D - B - 50
+    rows.append({
+        "Cut piece name": "Center Partition",
+        "Wood": _dims(part_h, part_w),
+        "Colour laminate": "",
+        "White laminate": _dims_2(part_h, part_w, 2),
+        "Colour edge bidding": 0.0,
+        "White edge bidding": round(2*part_h + 2*part_w, 1),
+    })
 
-    door_h = H - P - 3*WOOD_IN_OUT
-    door_w = (L - 2*WOOD)/2
-    rows.append(_row("Doors", 2, door_h, door_w, f"{WOOD}mm core"))
+    # doors
+    door_h = H - P - WOOD_IN_OUT
+    door_w = (L - 4*OUT)/2
+    rows.append({
+        "Cut piece name": "Doors",
+        "Wood": _dims_2(door_h, door_w, 2),
+        "Colour laminate": _dims_2(door_h, door_w,2),
+        "White laminate": _dims_2(door_h, door_w,2),
+        "Colour edge bidding": round(4*door_h + 4*door_w, 1),
+        "White edge bidding": 0.0,
+    })
 
-    rows.append(_row("Bottom SKT", 1, P, L, f"{WOOD}mm core"))
+    # bottom skirting
+    rows.append({
+        "Cut piece name": "Bottom SKT",
+        "Wood": _dims(P - OUT, L - 2*OUT),
+        "Colour laminate": _dims(P - OUT, L - 2*OUT),
+        "White laminate": "",
+        "Colour edge bidding": round(2*P + L, 1),
+        "White edge bidding": "",
+    })
 
-    # Fixed shelf across carcass (between inside faces / includes partition allowance)
-    shelf_len = (L - 3*WOOD_OUT)/2
-    shelf_w   = D - B - 5*WOOD
-    rows.append(_row("Horizontal Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
+    # shelves
+    shelf_len = (L - 3*WOOD_IN_OUT)/2
+    if shelves > 0:
+        total_shelfs = shelves + drawers
+        rows.append({
+            "Cut piece name": "Horizontal Shelf",
+            "Wood": _dims_2(shelf_len, part_w, total_shelfs),            # per shelf
+            "Colour laminate": "",
+            "White laminate": _dims_2(shelf_len, part_w, 2*(total_shelfs)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*total_shelfs*shelf_len + 2*total_shelfs*part_w, 1),
+        })
 
-    # # Adjustable shelves (per bay)
-    # if shelves > 0:
-    #     bays = 2 if have_center_partition else 1
-    #     # Each bay length inside = internal opening per bay minus the partition inner-face thickness at one side
-    #     shelf_len = tb_len / bays - (WOOD_IN if have_center_partition else 0)
-    #     shelf_w = D - B
-    #     out.append(_fmt("Adjustable Shelf", shelves, shelf_len, shelf_w, f"{WOOD}mm core"))
-
+    # drawers (kept compact; no edge sums for now)
     if drawers > 0:
-        draw_s_h = drawer_height - 2*WOOD_IN
-        draw_s_d = D - B - 5*WOOD
-        draw_f_h = drawer_height - 2*WOOD_IN
-        draw_f_w = (L - 26*WOOD)/4
+        draw_s_h = drawer_height - WOOD_IN_OUT
+        draw_s_d = part_w - 100
+        draw_f_h = (drawer_height)/2
+        draw_f_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
         draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 26*WOOD)/4
-        draw_bo_w = (L -  25*WOOD)/4
-        draw_bo_d = D - B - 5*WOOD
+        draw_b_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
+        draw_bo_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
+        draw_bo_d = part_w - 100
         draw_fa_h = drawer_height - WOOD
-        draw_fa_w = (L - 12*WOOD_IN)/4
-        rows.append(_row("Drawer Side Panel", drawers*2, draw_s_h, draw_s_d, f"{WOOD}mm; groove"))
-        rows.append(_row("Drawer Front Panel", drawers, draw_f_h, draw_f_w, f"{WOOD}mm"))
-        rows.append(_row("Drawer Back Panel", drawers, draw_b_h, draw_b_w, f"{WOOD}mm"))
-        rows.append(_row(f"Drawer Bottom ({int(B)}mm)", drawers, draw_bo_w, draw_bo_d, f"{int(B)}mm"))
-        rows.append(_row("Drawer Fascia", drawers, draw_fa_h, draw_fa_w, "exposed"))
-        rows.append(_row("Drawer Dummy", drawers*2, draw_s_h, draw_s_d,))
+        draw_fa_w = (L - 3*WOOD_IN_OUT)/2 - WOOD_IN
 
+        rows.append({
+            "Cut piece name": "Drawer Side Panel",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*drawers),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 4*(drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*drawers*draw_s_h + 4*drawers*draw_s_d, 1),
+        })
+        rows.append({   
+            "Cut piece name": "Drawer Front Panel",
+            "Wood": _dims_2(draw_f_h, draw_f_w, drawers),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_f_h, draw_f_w, 2*(drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*drawers*draw_f_h + 2*drawers*draw_f_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Drawer Back Panel",
+            "Wood": _dims_2(draw_b_h, draw_b_w, drawers),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_b_h, draw_b_w, 2*(drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*drawers*draw_b_h + 2*drawers*draw_b_w, 1),
+        })
+        rows.append({
+            "Cut piece name": f"Drawer Bottom ({int(B)}mm)",
+            "Wood": _dims_2(draw_bo_w, draw_bo_d, drawers),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_bo_w, draw_bo_d, 2*(drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": 0.0,
+        })
+        rows.append({
+            "Cut piece name": "Drawer Fascia",
+            "Wood": _dims_2(draw_fa_h, draw_fa_w, drawers),
+            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, (drawers)),
+            "White laminate": _dims_2(draw_fa_h, draw_fa_w, (drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*drawers*draw_fa_h + 2*drawers*draw_fa_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Drawer Dummy",
+            "Wood": _dims_2(draw_s_h, draw_s_d,3*drawers),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 6*(drawers)),  # per face (compact)
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(6*drawers*draw_s_h + 6*drawers*draw_s_d, 1),
+        })
 
-#     # carcass
-#     side_h = H - P
-#     side_w = D
-#     rows.append(_row("Left Panel", 1, side_h, side_w, f"{WOOD}mm core;"))
-#     rows.append(_row("Right Panel", 1, side_h, side_w, f"{WOOD}mm core;"))
+        # rows += [
+        #     {"Cut piece name": "Drawer Side Panel", "Wood": _dims(draw_s_h, draw_s_d),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        #     {"Cut piece name": "Drawer Front Panel", "Wood": _dims(draw_f_h, draw_f_w),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        #     {"Cut piece name": "Drawer Back Panel", "Wood": _dims(draw_b_h, draw_b_w),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        #     {"Cut piece name": f"Drawer Bottom ({int(B)}mm)", "Wood": _dims(draw_bo_w, draw_bo_d),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        #     {"Cut piece name": "Drawer Fascia", "Wood": _dims(draw_fa_h, draw_fa_w),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        #     {"Cut piece name": "Drawer Dummy", "Wood": _dims(draw_s_h, draw_s_d),
+        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
+        # ]
 
-#     tb_len = (L - 2*WOOD_IN) if side_outside else L
-#     tb_w   = D
-#     rows.append(_row("Top Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-#     rows.append(_row("Bottom Panel", 1, tb_len, tb_w, f"{WOOD}mm core; groove to back"))
-
-#     back_h = H - P - (2*groove)
-#     back_l = L - 2*WOOD_OUT - WOOD + 2*groove
-#     rows.append(_row(f"Back ({int(B)}mm)", 2, back_h, back_l, f"{int(B)}mm"))
-
-#     if have_center_partition:
-#         rows.append(_row("Center Partition", 1, H - P - WOOD - groove, D - B, f"{WOOD}mm core"))
-
-#     rows.append(_row("Fixed Shelf", 1, tb_len, D - B, f"{WOOD}mm core"))
-
-#     if shelves > 0:
-#         bays = 2 if have_center_partition else 1
-#         shelf_len = tb_len / bays - (WOOD_IN if have_center_partition else 0)
-#         rows.append(_row("Adjustable Shelf", shelves, shelf_len, D - B, f"{WOOD}mm core"))
-
-#     if drawers > 0:
-#         bay_w_clear = (tb_len / (2 if have_center_partition else 1)) - 2*WOOD_IN
-#         bay_d_clear = D - B - WOOD
-#         box_h = 174.0 if H <= 2600 else 138.0
-#         rows.append(_row("Drawer Side Panel", drawers*2, box_h-2, bay_d_clear, f"{WOOD}mm; groove"))
-#         rows.append(_row("Drawer Front Panel", drawers, box_h-2, bay_w_clear, f"{WOOD}mm"))
-#         rows.append(_row("Drawer Back Panel", drawers, box_h-2, bay_w_clear, f"{WOOD}mm"))
-#         rows.append(_row(f"Drawer Bottom ({int(B)}mm)", drawers, bay_d_clear, bay_w_clear, f"{int(B)}mm"))
-#         rows.append(_row("Drawer Fascia", drawers, (box_h-2)+56, bay_w_clear+72, "exposed"))
-
-#     rows.append(_row("Skirting (front)", 1, 98.0, tb_len, f"{WOOD}mm"))
-#     rows.append(_row("Side Dummy Trim", 1, H - P, 40.0, f"{WOOD}mm"))
-
-#     opening_w = tb_len
-#     leaf_w = (opening_w + overlap) / 2.0 - side_clear
-#     leaf_h = H - P - top_track_h - bottom_track_h - running_clear
-#     rows.append(_row(f"Sliding Shutter (leaf, {int(door_thick)}mm)", 2, leaf_h, leaf_w, f"{int(door_thick)}mm"))
-
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows, columns=[
+        "Cut piece name",
+        "Wood",
+        "Colour laminate",
+        "White laminate",
+        "Colour edge bidding",
+        "White edge bidding",
+    ])
+    return df
