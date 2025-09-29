@@ -7,7 +7,7 @@ DEFAULTS = {
     # construction
     "wood_thick": 18.0,       # carcass core (MR/HDHMR) thickness
     "inside_lam": 0.8,        # laminate on inner faces
-    "outside_lam": 2.0,       # laminate on outer faces
+    "outside_lam": 1.0,       # laminate on outer faces
     "side_outside": True,  
     "doors":4   # sides outside top/bottom
 
@@ -117,18 +117,85 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     filler_w = int(d["filler"])
     doors = int(d["doors"])
 
-    if doors > 2 : center_panel = 1
+    if doors > 2:
+        center_panel = 1
+    else:
+        center_panel = 0
 
-    WOOD_IN = WOOD + IN  #Wood + Inside laminate
-    WOOD_OUT = WOOD + OUT  #Wood + Inside laminate
-    WOOD_IN_OUT = WOOD + IN + OUT  #Wood + both laminates
+    WOOD_IN = WOOD + IN  # Wood + Inside laminate
+    WOOD_OUT = WOOD + OUT  # Wood + Outside laminate
+    WOOD_IN_OUT = WOOD + IN + OUT  # Wood + both laminates
+
+    def dims(h, w):
+        return f"{round(h,1)} × {round(w,1)}"
+
+    def dims_2(h, w, qty):
+        return f"{round(h,1)} × {round(w,1)} = {qty} qty"
 
     rows = []
 
-    rows.append(_row(f"Loft Doors", doors, H, L/4, f"{WOOD}mm core"))
-    rows.append(_row(f"Center Panel", center_panel, H , D, f"{WOOD}mm core"))
-    rows.append(_row(f"Expo Panel Side", 1, H, D, f"{WOOD}mm core"))
-    rows.append(_row(f"Dummy", 1, H, filler_w, f"{WOOD}mm core"))
-    rows.append(_row(f"Dummy", 1, L + 2*WOOD_IN_OUT, filler_w, f"{WOOD}mm core"))
-    rows.append(_row(f"Ripper", 1, L + 2*WOOD_IN_OUT, 98, f"{WOOD}mm core"))
-    return pd.DataFrame(rows)
+    # Loft Doors
+    rows.append({
+        "Cut piece name": "Loft Doors",
+        "Wood": dims_2(H, L/4, doors),
+        "Colour laminate": dims_2(H, L/4, doors),
+        "White laminate": dims_2(H, L/4, doors),
+        "Colour edge bidding": round(2*H + 2*(L/4), 1),
+        "White edge bidding": 0.0,
+    })
+    # Center Panel
+    if center_panel:
+        rows.append({
+            "Cut piece name": "Center Panel",
+            "Wood": dims(H, D),
+            "Colour laminate": dims(H, D),
+            "White laminate": dims(H, D),
+            "Colour edge bidding": round(2*H + 2*D, 1),
+            "White edge bidding": 0.0,
+        })
+    # Expo Panel Side
+    rows.append({
+        "Cut piece name": "Expo Panel Side",
+        "Wood": dims(H, D),
+        "Colour laminate": dims(H, D),
+        "White laminate": dims(H, D),
+        "Colour edge bidding": round(2*H + 2*D, 1),
+        "White edge bidding": 0.0,
+    })
+    # Dummy (vertical)
+    rows.append({
+        "Cut piece name": "Dummy (vertical)",
+        "Wood": dims(H, filler_w),
+        "Colour laminate": dims(H, filler_w),
+        "White laminate": dims(H, filler_w),
+        "Colour edge bidding": round(2*H + 2*filler_w, 1),
+        "White edge bidding": 0.0,
+    })
+    # Dummy (horizontal)
+    rows.append({
+        "Cut piece name": "Dummy (horizontal)",
+        "Wood": dims(L + 2*WOOD_IN_OUT, filler_w),
+        "Colour laminate": dims(L + 2*WOOD_IN_OUT, filler_w),
+        "White laminate": dims(L + 2*WOOD_IN_OUT, filler_w),
+        "Colour edge bidding": round(2*(L + 2*WOOD_IN_OUT) + 2*filler_w, 1),
+        "White edge bidding": 0.0,
+    })
+    # Ripper
+    rows.append({
+        "Cut piece name": "Ripper",
+        "Wood": dims(L + 2*WOOD_IN_OUT, 98),
+        "Colour laminate": dims(L + 2*WOOD_IN_OUT, 98),
+        "White laminate": dims(L + 2*WOOD_IN_OUT, 98),
+        "Colour edge bidding": 0.0,
+        "White edge bidding": round(2*(L + 2*WOOD_IN_OUT) + 2*98, 1),
+    })
+
+    df = pd.DataFrame(rows, columns=[
+        "Cut piece name",
+        "Wood",
+        "Colour laminate",
+        "White laminate",
+        "Colour edge bidding",
+        "White edge bidding",
+    ])
+    return df
