@@ -6,6 +6,7 @@ import wardrobe_1door
 import loft
 import tv_unit_type1
 import wardrobe_2door_slide
+import wardrobe_3door_slide
 import KT_cabinet
 import KT_bottle_po
 import KT_blind_cp
@@ -16,6 +17,11 @@ import KT_wall_unit
 # --- Map wardrobe types to their form/calc functions and image paths ---
 # image_paths can be 1 or 2 paths; both will be shown one below the other.
 type_fns = {
+    "1-Door Wardrobe": (
+        wardrobe_1door.form_type1,
+        wardrobe_1door.calc_type1,
+        ["1door.PNG", "1door_2.PNG"]  # single image is fine
+    ),
     "2-Door Normal": (
         wardrobe_2door.form_type1,
         wardrobe_2door.calc_type1,
@@ -26,20 +32,15 @@ type_fns = {
         wardrobe_2door_slide.calc_type1,
         ["2door_slide.png", "2door_slide_2.png"]
     ),
-    "1-Door Wardrobe": (
-        wardrobe_1door.form_type1,
-        wardrobe_1door.calc_type1,
-        ["1door.PNG", "1door_2.PNG"]  # single image is fine
+    "3-Door Sliding": (
+        wardrobe_3door_slide.form_type1,
+        wardrobe_3door_slide.calc_type1,
+        ["2door_slide.png", "2door_slide_2.png"]
     ),
     "Wardrobe Loft ": (
         loft.form_type1,
         loft.calc_type1,
         ["loft1.png", "loft2.png"]
-    ),
-    "TV Unit Type 1": (
-        tv_unit_type1.form_type1,
-        tv_unit_type1.calc_type1,
-        ["tvunit1.PNG", "tvunit2.PNG"]
     ),
     "Kitchen - Cabinet": (
         KT_cabinet.form_type1,
@@ -221,11 +222,11 @@ if st.session_state["all_types_inputs"]:
             # Try to get a DataFrame from the module
             df = None
             module_obj = {
+                "1-Door Wardrobe": wardrobe_1door,
                 "2-Door Normal": wardrobe_2door,
                 "2-Door Sliding": wardrobe_2door_slide,
-                "1-Door Wardrobe": wardrobe_1door,
+                "3-Door Sliding": wardrobe_3door_slide,
                 "Wardrobe Loft ": loft,
-                "TV Unit Type 1": tv_unit_type1,
                 "Kitchen - Cabinet": KT_cabinet,
                 "Kitchen - BPO": KT_bottle_po,
                 "Kitchen - 3 Tandems": KT_3_tan,
