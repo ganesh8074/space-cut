@@ -55,12 +55,12 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     # Partition type selectors for both sides
     part_type_left = st.selectbox("Left Partition Type",
         ["S", "SV", "SVD", "SVD2",  "SD", "SD2"],
-        index=1 if prefill.get("part_type_left", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
+        index=2 if prefill.get("part_type_left", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
         key="s_part_type_left"
     )
     part_type_right = st.selectbox("Right Partition Type",
         ["S", "SV", "SVD", "SVD2",  "SD", "SD2"],
-        index=1 if prefill.get("part_type_right", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
+        index=3 if prefill.get("part_type_right", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
         key="s_part_type_right"
     )
 
@@ -580,3 +580,4 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "White edge bidding",
     ])
     return df
+
