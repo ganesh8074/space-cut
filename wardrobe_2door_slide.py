@@ -17,7 +17,8 @@ DEFAULTS = {
 
     # storage
     "shelves": 4,
-    "drawers": 2,
+    "l_drawers": 2,
+    "r_drawers": 2,
     "draw_height": 150.0,
     "have_center_partition": True,  # typical for long wardrobes
 
@@ -30,7 +31,9 @@ DEFAULTS = {
     "stile_side_clear": 3.0,  # side clearance between leaf & gable (per side)
 
     # back splitting
-    "back_split_max": 1160.0,
+    "part_type_left": "SVD",  # partition type: S, SV, SVD, SVD2, SD, SD
+    "part_type_right": "SVD",  # partition type: S, SV, SVD, SVD2, SD, SD
+    "ver_shelf_height": 100.0, # vertical shelf height
 }
 
 # ---------------- UI (all vertical, one-by-one) ----------------
@@ -49,12 +52,28 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     
     depth  = st.number_input("Depth (mm)", 450.0, 800.0,
                              value=float(prefill.get("depth", 600.0)), step=1.0, key="s_depth")
+    # Partition type selectors for both sides
+    part_type_left = st.selectbox("Left Partition Type",
+        ["S", "SV", "SVD", "SVD2",  "SD", "SD2"],
+        index=1 if prefill.get("part_type_left", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
+        key="s_part_type_left"
+    )
+    part_type_right = st.selectbox("Right Partition Type",
+        ["S", "SV", "SVD", "SVD2",  "SD", "SD2"],
+        index=1 if prefill.get("part_type_right", "SV") in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
+        key="s_part_type_right"
+    )
 
     shelves = st.number_input("Horizontal Shelves (qty)", 0, 16,
                               value=int(prefill.get("shelves", DEFAULTS["shelves"])), step=1, key="s_shelves")
 
-    drawers = st.number_input("Drawers (qty)", 0, 8,
-                              value=int(prefill.get("drawers", DEFAULTS["drawers"])), step=1, key="s_drawers")
+    ver_shelf_height = st.number_input("Vertical Shlef Total Height (mm)", 10.0, 3000.0,
+                                    value=float(prefill.get("ver_shelf_height", DEFAULTS["ver_shelf_height"])), step=1.0, key="s_dver_shelf_h")
+
+    l_drawers = st.number_input("Left Part Drawers (qty)", 0, 8,
+                              value=int(prefill.get("drawers", DEFAULTS["l_drawers"])), step=1, key="s_r_drawers")
+    r_drawers = st.number_input("Right Part Drawers (qty)", 0, 8,
+                              value=int(prefill.get("drawers", DEFAULTS["r_drawers"])), step=1, key="s_l_drawers")
 
     draw_height = st.number_input("Drawer Height (mm)", 100.0, 525.0,
                                  value=float(prefill.get("draw_height", DEFAULTS["draw_height"])), step=1.0, key="s_draw_h")
@@ -114,8 +133,8 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
         length=length, height=height, depth=depth,
         wood_thick=wood_thick, inside_lam=inside_lam, outside_lam=outside_lam,
         back_thick=back_thick, plinth=plinth, groove=groove,
-        side_outside=side_outside, shelves=shelves, drawers=drawers,
-        draw_height=draw_height
+        side_outside=side_outside, shelves=shelves, l_drawers=l_drawers, r_drawers=r_drawers,
+        draw_height=draw_height, ver_shelf_height=ver_shelf_height,part_type_left=part_type_left, part_type_right=part_type_right,
         # have_center_partition=have_center_partition,
         # top_track_h=top_track_h, bottom_track_h=bottom_track_h, running_clear=running_clear,
         # door_thick=door_thick, overlap=overlap, stile_side_clear=stile_side_clear,
@@ -151,8 +170,12 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     groove = float(d["groove"])
     side_outside = bool(d["side_outside"])
     shelves = int(d["shelves"])
-    drawers = int(d["drawers"])
+    l_drawers = int(d["l_drawers"])
+    r_drawers = int(d["r_drawers"])
     drawer_height = float(d["draw_height"])
+    part_type_left = d.get("part_type_left", DEFAULTS["part_type_left"])
+    part_type_right = d.get("part_type_right", DEFAULTS["part_type_right"])
+    ver_shelf_height = float(d["ver_shelf_height"])
 
     rows = []
 
@@ -243,7 +266,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     # shelves
     shelf_len = (L - 3*WOOD_IN_OUT)/2
     if shelves > 0:
-        total_shelfs = shelves + drawers
+        total_shelfs = shelves
         rows.append({
             "Cut piece name": "Horizontal Shelf",
             "Wood": _dims_2(shelf_len, part_w, total_shelfs),            # per shelf
@@ -253,82 +276,300 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
             "White edge bidding": round(2*total_shelfs*shelf_len + 2*total_shelfs*part_w, 1),
         })
 
-    # drawers (kept compact; no edge sums for now)
-    if drawers > 0:
-        draw_s_h = drawer_height - WOOD_IN_OUT
-        draw_s_d = part_w - 100
-        draw_f_h = (drawer_height)/2
-        draw_f_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
+
+        l_sing_draw = 0
+        r_sing_draw = 0
+        l_doub_draw = 0
+        r_doub_draw = 0
+
+    if part_type_left in ["S"]:
+        l_drawers = 0
+    elif part_type_left in ["SV"]:
+        l_drawers = 0
+    elif part_type_left in ["SVD2"]:
+        l_doub_draw = l_drawers - l_drawers % 2
+        l_sing_draw = l_drawers % 2
+    elif part_type_left in ["SD2"]:
+        l_doub_draw = l_drawers - l_drawers % 2
+        l_sing_draw = l_drawers % 2
+    elif part_type_left in ["SD"]:
+        l_doub_draw = 0
+        l_sing_draw = l_drawers
+    elif part_type_left in ["SVD"]:
+        l_doub_draw = 0
+        l_sing_draw = l_drawers
+
+    if l_sing_draw > 0:
+        draw_s_h = drawer_height - 2*WOOD_IN
+        draw_s_d = D - B - 3*WOOD
+        draw_f_h = drawer_height - 2*WOOD
+        draw_f_w = (L - 4*WOOD)
         draw_b_h = drawer_height - 2*WOOD_IN
-        draw_b_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
-        draw_bo_w = (L - 3*WOOD_IN_OUT)/2 - 5*WOOD_IN
-        draw_bo_d = part_w - 100
+        draw_b_w = (L - 4*WOOD)
+        draw_bo_w = (L -  3*WOOD)
+        draw_bo_d = D - B - 4*WOOD
         draw_fa_h = drawer_height - WOOD
-        draw_fa_w = (L - 3*WOOD_IN_OUT)/2 - WOOD_IN
+        draw_fa_w = (L - WOOD_IN)
 
         rows.append({
-            "Cut piece name": "Drawer Side Panel",
-            "Wood": _dims_2(draw_s_h, draw_s_d, 2*drawers),
+            "Cut piece name": "Left Single Drawer Side Panel ",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*l_sing_draw),
             "Colour laminate": "",
-            "White laminate": _dims_2(draw_s_h, draw_s_d, 4*(drawers)),  # per face (compact)
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*l_sing_draw),
             "Colour edge bidding": 0.0,
-            "White edge bidding": round(4*drawers*draw_s_h + 4*drawers*draw_s_d, 1),
-        })
-        rows.append({   
-            "Cut piece name": "Drawer Front Panel",
-            "Wood": _dims_2(draw_f_h, draw_f_w, drawers),
-            "Colour laminate": "",
-            "White laminate": _dims_2(draw_f_h, draw_f_w, 2*(drawers)),  # per face (compact)
-            "Colour edge bidding": 0.0,
-            "White edge bidding": round(2*drawers*draw_f_h + 2*drawers*draw_f_w, 1),
+            "White edge bidding": round(4*l_sing_draw*draw_s_h + 4*l_sing_draw*draw_s_d, 1),
         })
         rows.append({
-            "Cut piece name": "Drawer Back Panel",
-            "Wood": _dims_2(draw_b_h, draw_b_w, drawers),
+            "Cut piece name": "Left Single Drawer Front Panel",
+            "Wood": _dims_2(draw_f_h, draw_f_w, l_sing_draw),
             "Colour laminate": "",
-            "White laminate": _dims_2(draw_b_h, draw_b_w, 2*(drawers)),  # per face (compact)
+            "White laminate": _dims_2(draw_f_h, draw_f_w, l_sing_draw),
             "Colour edge bidding": 0.0,
-            "White edge bidding": round(2*drawers*draw_b_h + 2*drawers*draw_b_w, 1),
+            "White edge bidding": round(2*l_sing_draw*draw_f_h + 2*l_sing_draw*draw_f_w, 1),
         })
         rows.append({
-            "Cut piece name": f"Drawer Bottom ({int(B)}mm)",
-            "Wood": _dims_2(draw_bo_w, draw_bo_d, drawers),
+            "Cut piece name": "Left Single Drawer Back Panel",
+            "Wood": _dims_2(draw_b_h, draw_b_w, l_sing_draw),
             "Colour laminate": "",
-            "White laminate": _dims_2(draw_bo_w, draw_bo_d, 2*(drawers)),  # per face (compact)
+            "White laminate": _dims_2(draw_b_h, draw_b_w, l_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*l_sing_draw*draw_b_h + 2*l_sing_draw*draw_b_w, 1),
+        })
+        rows.append({
+            "Cut piece name": f"Left Single Drawer Bottom ({int(B)}mm)",
+            "Wood": _dims_2(draw_bo_w, draw_bo_d, l_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_bo_w, draw_bo_d, l_sing_draw),
             "Colour edge bidding": 0.0,
             "White edge bidding": 0.0,
         })
         rows.append({
-            "Cut piece name": "Drawer Fascia",
-            "Wood": _dims_2(draw_fa_h, draw_fa_w, drawers),
-            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, (drawers)),
-            "White laminate": _dims_2(draw_fa_h, draw_fa_w, (drawers)),  # per face (compact)
+            "Cut piece name": "Left Single Drawer Fascia",
+            "Wood": _dims_2(draw_fa_h, draw_fa_w, l_sing_draw),
+            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, l_sing_draw),
+            "White laminate": _dims_2(draw_fa_h, draw_fa_w, l_sing_draw),
             "Colour edge bidding": 0.0,
-            "White edge bidding": round(2*drawers*draw_fa_h + 2*drawers*draw_fa_w, 1),
+            "White edge bidding": round(2*l_sing_draw*draw_fa_h + 2*l_sing_draw*draw_fa_w, 1),
         })
         rows.append({
-            "Cut piece name": "Drawer Dummy",
-            "Wood": _dims_2(draw_s_h, draw_s_d,3*drawers),
+            "Cut piece name": "Left Single Drawer Dummy",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*l_sing_draw),
             "Colour laminate": "",
-            "White laminate": _dims_2(draw_s_h, draw_s_d, 6*(drawers)),  # per face (compact)
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*l_sing_draw),
             "Colour edge bidding": 0.0,
-            "White edge bidding": round(6*drawers*draw_s_h + 6*drawers*draw_s_d, 1),
+            "White edge bidding": round(4*l_sing_draw*draw_s_h + 4*l_sing_draw*draw_s_d, 1),
         })
 
-        # rows += [
-        #     {"Cut piece name": "Drawer Side Panel", "Wood": _dims(draw_s_h, draw_s_d),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        #     {"Cut piece name": "Drawer Front Panel", "Wood": _dims(draw_f_h, draw_f_w),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        #     {"Cut piece name": "Drawer Back Panel", "Wood": _dims(draw_b_h, draw_b_w),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        #     {"Cut piece name": f"Drawer Bottom ({int(B)}mm)", "Wood": _dims(draw_bo_w, draw_bo_d),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        #     {"Cut piece name": "Drawer Fascia", "Wood": _dims(draw_fa_h, draw_fa_w),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        #     {"Cut piece name": "Drawer Dummy", "Wood": _dims(draw_s_h, draw_s_d),
-        #      "Colour laminate": "", "White laminate": "", "Colour edge bidding": 0.0, "White edge bidding": 0.0},
-        # ]
+    if l_doub_draw > 0:
+        draw_s_h = drawer_height - 2*WOOD_IN
+        draw_s_d = D - B - 3*WOOD
+        draw_f_h = drawer_height - 2*WOOD
+        draw_f_w = (L - 4*WOOD)/2
+        draw_b_h = drawer_height - 2*WOOD_IN
+        draw_b_w = (L - 4*WOOD)/2
+        draw_bo_w = (L -  3*WOOD)/2
+        draw_bo_d = D - B - 4*WOOD
+        draw_fa_h = drawer_height - WOOD
+        draw_fa_w = (L - WOOD_IN)/2
+
+        rows.append({
+            "Cut piece name": "Left Double Drawer Side Panel",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*l_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*l_doub_draw*draw_s_h + 4*l_doub_draw*draw_s_d, 1),
+        })
+        rows.append({
+            "Cut piece name": "Left Double Drawer Front Panel",
+            "Wood": _dims_2(draw_f_h, draw_f_w, l_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_f_h, draw_f_w, l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*l_doub_draw*draw_f_h + 2*l_doub_draw*draw_f_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Left Double Drawer Back Panel",
+            "Wood": _dims_2(draw_b_h, draw_b_w, l_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_b_h, draw_b_w, l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*l_doub_draw*draw_b_h + 2*l_doub_draw*draw_b_w, 1),
+        })
+        rows.append({
+            "Cut piece name": f"Left Double Drawer Bottom ({int(B)}mm)",
+            "Wood": _dims_2(draw_bo_w, draw_bo_d, l_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_bo_w, draw_bo_d, l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": 0.0,
+        })
+        rows.append({
+            "Cut piece name": "Left Double Drawer Fascia",
+            "Wood": _dims_2(draw_fa_h, draw_fa_w, l_doub_draw),
+            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, l_doub_draw),
+            "White laminate": _dims_2(draw_fa_h, draw_fa_w, l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*l_doub_draw*draw_fa_h + 2*l_doub_draw*draw_fa_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Left Double Drawer Dummy",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*l_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*l_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*l_doub_draw*draw_s_h + 4*l_doub_draw*draw_s_d, 1),
+        })
+
+#right side partition drawers
+    if part_type_right in ["S"]:
+        r_drawers = 0
+    elif part_type_right in ["SV"]:
+        r_drawers = 0
+    elif part_type_right in ["SVD2"]:
+        r_doub_draw = r_drawers - r_drawers % 2
+        r_sing_draw = r_drawers % 2
+    elif part_type_right in ["SD2"]:
+        r_doub_draw = r_drawers - r_drawers % 2
+        r_sing_draw = r_drawers % 2
+    elif part_type_right in ["SD"]:
+        r_doub_draw = 0
+        r_sing_draw = r_drawers
+    elif part_type_right in ["SVD"]:
+        r_doub_draw = 0
+        r_sing_draw = r_drawers
+
+    if r_sing_draw > 0:
+        draw_s_h = drawer_height - 2*WOOD_IN
+        draw_s_d = D - B - 3*WOOD
+        draw_f_h = drawer_height - 2*WOOD
+        draw_f_w = (L - 4*WOOD)
+        draw_b_h = drawer_height - 2*WOOD_IN
+        draw_b_w = (L - 4*WOOD)
+        draw_bo_w = (L -  3*WOOD)
+        draw_bo_d = D - B - 4*WOOD
+        draw_fa_h = drawer_height - WOOD
+        draw_fa_w = (L - WOOD_IN)
+
+        rows.append({
+            "Cut piece name": "Right Single Drawer Side Panel ",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*r_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*r_sing_draw*draw_s_h + 4*r_sing_draw*draw_s_d, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Single Drawer Front Panel",
+            "Wood": _dims_2(draw_f_h, draw_f_w, r_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_f_h, draw_f_w, r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_sing_draw*draw_f_h + 2*r_sing_draw*draw_f_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Single Drawer Back Panel",
+            "Wood": _dims_2(draw_b_h, draw_b_w, r_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_b_h, draw_b_w, r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_sing_draw*draw_b_h + 2*r_sing_draw*draw_b_w, 1),
+        })
+        rows.append({
+            "Cut piece name": f"Right Single Drawer Bottom ({int(B)}mm)",
+            "Wood": _dims_2(draw_bo_w, draw_bo_d, r_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_bo_w, draw_bo_d, r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": 0.0,
+        })
+        rows.append({
+            "Cut piece name": "Right Single Drawer Fascia",
+            "Wood": _dims_2(draw_fa_h, draw_fa_w, r_sing_draw),
+            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, r_sing_draw),
+            "White laminate": _dims_2(draw_fa_h, draw_fa_w, r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_sing_draw*draw_fa_h + 2*r_sing_draw*draw_fa_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Single Drawer Dummy",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*r_sing_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*r_sing_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*r_sing_draw*draw_s_h + 4*r_sing_draw*draw_s_d, 1),
+        })
+
+    if r_doub_draw > 0:
+        draw_s_h = drawer_height - 2*WOOD_IN
+        draw_s_d = D - B - 3*WOOD
+        draw_f_h = drawer_height - 2*WOOD
+        draw_f_w = (L - 4*WOOD)/2
+        draw_b_h = drawer_height - 2*WOOD_IN
+        draw_b_w = (L - 4*WOOD)/2
+        draw_bo_w = (L -  3*WOOD)/2
+        draw_bo_d = D - B - 4*WOOD
+        draw_fa_h = drawer_height - WOOD
+        draw_fa_w = (L - WOOD_IN)/2
+
+        rows.append({
+            "Cut piece name": "Right Double Drawer Side Panel",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*r_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*r_doub_draw*draw_s_h + 4*r_doub_draw*draw_s_d, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Double Drawer Front Panel",
+            "Wood": _dims_2(draw_f_h, draw_f_w, r_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_f_h, draw_f_w, r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_doub_draw*draw_f_h + 2*r_doub_draw*draw_f_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Double Drawer Back Panel",
+            "Wood": _dims_2(draw_b_h, draw_b_w, r_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_b_h, draw_b_w, r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_doub_draw*draw_b_h + 2*r_doub_draw*draw_b_w, 1),
+        })
+        rows.append({
+            "Cut piece name": f"Right Double Drawer Bottom ({int(B)}mm)",
+            "Wood": _dims_2(draw_bo_w, draw_bo_d, r_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_bo_w, draw_bo_d, r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": 0.0,
+        })
+        rows.append({
+            "Cut piece name": "Right Double Drawer Fascia",
+            "Wood": _dims_2(draw_fa_h, draw_fa_w, r_doub_draw),
+            "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, r_doub_draw),
+            "White laminate": _dims_2(draw_fa_h, draw_fa_w, r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*r_doub_draw*draw_fa_h + 2*r_doub_draw*draw_fa_w, 1),
+        })
+        rows.append({
+            "Cut piece name": "Right Double Drawer Dummy",
+            "Wood": _dims_2(draw_s_h, draw_s_d, 2*r_doub_draw),
+            "Colour laminate": "",
+            "White laminate": _dims_2(draw_s_h, draw_s_d, 2*r_doub_draw),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(4*r_doub_draw*draw_s_h + 4*r_doub_draw*draw_s_d, 1),
+        })
+
+    if ver_shelf_height > 0:
+          rows.append({
+            "Cut piece name": "All Vertical Shelfs complete piece",
+            "Wood": _dims_2(ver_shelf_height, part_w, 1),
+            "Colour laminate": "",
+            "White laminate": _dims_2(ver_shelf_height, part_w, 2),
+            "Colour edge bidding": 0.0,
+            "White edge bidding": round(2*ver_shelf_height + 2*part_w, 1),
+        })
 
     df = pd.DataFrame(rows, columns=[
         "Cut piece name",
