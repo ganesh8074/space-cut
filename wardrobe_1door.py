@@ -54,7 +54,7 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     
     part_type = st.selectbox("Partition Type",
         ["S", "SV", "SVD", "SVD2",  "SD", "SD2"],
-        index=1 if prefill.get("part_type", DEFAULTS["part_type"]) in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
+        index=2 if prefill.get("part_type", DEFAULTS["part_type"]) in ["S", "SV", "SVD", "SVD2", "SD", "SD2"] else 0,
         key="s_part_type"
     )
 
@@ -431,3 +431,4 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "White edge bidding",
     ])
     return df
+
