@@ -4,15 +4,8 @@ import streamlit as st
 import wardrobe_2door
 import wardrobe_1door
 import loft
-import tv_unit_type1
 import wardrobe_2door_slide
 import wardrobe_3door_slide
-import KT_cabinet
-import KT_bottle_po
-import KT_blind_cp
-import KT_3_tan
-import KT_sink
-import KT_wall_unit
 
 # --- Map wardrobe types to their form/calc functions and image paths ---
 # image_paths can be 1 or 2 paths; both will be shown one below the other.
@@ -42,36 +35,7 @@ type_fns = {
         loft.calc_type1,
         ["loft1.png", "loft2.png"]
     ),
-    "Kitchen - Cabinet": (
-        KT_cabinet.form_type1,
-        KT_cabinet.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
-    "Kitchen - BPO": (
-        KT_bottle_po.form_type1,
-        KT_bottle_po.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
-    "Kitchen - 3 Tandems": (
-        KT_3_tan.form_type1,
-        KT_3_tan.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
-    "Kitchen - Blind Corner": (
-        KT_blind_cp.form_type1,
-        KT_blind_cp.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
-    "Kitchen - Sink": (
-        KT_sink.form_type1,
-        KT_sink.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
-    "Kitchen - Wall Unit": (
-        KT_wall_unit.form_type1,
-        KT_wall_unit.calc_type1,
-        ["kt1.PNG", "kt2.PNG"]
-    ),
+
 }
 
 # ---------- Helpers: normalize DF -> six columns ----------
@@ -227,12 +191,6 @@ if st.session_state["all_types_inputs"]:
                 "2-Door Sliding": wardrobe_2door_slide,
                 "3-Door Sliding": wardrobe_3door_slide,
                 "Wardrobe Loft ": loft,
-                "Kitchen - Cabinet": KT_cabinet,
-                "Kitchen - BPO": KT_bottle_po,
-                "Kitchen - 3 Tandems": KT_3_tan,
-                "Kitchen - Blind Corner": KT_blind_cp,
-                "Kitchen - Sink": KT_sink,
-                "Kitchen - Wall Unit": KT_wall_unit,
             }[tname]
 
             if hasattr(module_obj, "get_cutlist_df"):
