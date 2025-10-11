@@ -9,7 +9,7 @@ DEFAULTS = {
     # construction
     "wood_thick": 18.0,       # carcass core (MR/HDHMR) thickness
     "inside_lam": 1.0,        # laminate on inner faces
-    "outside_lam": 1.0,       # laminate on outer faces
+    "outside_lam": 2.0,       # laminate on outer faces
     "back_thick": 6.0,        # back board
     "plinth": 100.0,          # skirting height
     "groove": 7.0,            # groove depth for back/shelves
@@ -583,4 +583,3 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "White edge bidding",
     ])
     return df
-
