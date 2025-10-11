@@ -245,6 +245,18 @@ if st.session_state["all_types_inputs"]:
                 if raw_df is not None:
                     df = normalize_to_six(raw_df)
 
+            # Display user input log (key-value) above cutpiece table for all types
+
+            user_inputs = st.session_state["all_types_inputs"][i]
+            st.markdown("**User Inputs:**")
+            keys = list(user_inputs.keys())
+            values = list(user_inputs.values())
+            n = len(keys)
+            cols = st.columns(4)
+            for idx in range(n):
+                col = cols[idx % 4]
+                col.write(f"**{keys[idx]}**: {values[idx]}")
+
             if df is not None and not df.empty and set([c.lower() for c in SIX_COLS]).issubset([c.lower() for c in df.columns]):
                 # Ensure proper column order
                 df = df[[c for c in SIX_COLS if c in df.columns]]
@@ -258,7 +270,7 @@ if st.session_state["all_types_inputs"]:
                 # Fallback to legacy bullets
                 mats = module_obj.calc_type1(st.session_state["all_types_inputs"][i])
                 for line in mats:
-                    st.write("- " + line)
+                    st.write(line)
 
         st.markdown("---")
 else:
