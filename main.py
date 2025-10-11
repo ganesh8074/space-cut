@@ -174,15 +174,9 @@ if st.session_state["all_types_inputs"]:
         st.subheader(f"{tname} — Option {i+1}")
         form_fn, calc_fn, image_paths = type_fns[tname]
 
-        cols = st.columns([1, 2])
+        # Only show cutpiece output (images removed as requested)
+        cols = st.columns([1])
         with cols[0]:
-            # Always treat as a list; show one below the other
-            if isinstance(image_paths, str):
-                image_paths = [image_paths]
-            for p in image_paths:
-                st.image(p, caption=tname, use_container_width=True)
-
-        with cols[1]:
             # Try to get a DataFrame from the module
             df = None
             module_obj = {
@@ -204,7 +198,6 @@ if st.session_state["all_types_inputs"]:
                     df = normalize_to_six(raw_df)
 
             # Display user input log (key-value) above cutpiece table for all types
-
             user_inputs = st.session_state["all_types_inputs"][i]
             st.markdown("**User Inputs:**")
             keys = list(user_inputs.keys())
