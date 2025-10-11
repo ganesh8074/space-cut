@@ -1,0 +1,12 @@
+classDiagram
+  class main_py {
+    +st.session_state
+    +normalize_to_six()
+    +safe_filename()
+  }
+  class ModuleX {
+    +form_type1(prefill, button_label)
+    +calc_type1(inputs)
+    +get_cutlist_df(inputs)  // optional
+  }
+  main_py o-- ModuleX : uses

@@ -1,0 +1,9 @@
+flowchart TD
+  Start([Start Streamlit]) --> InitConfig["st.set_page_config + imports"]
+  InitConfig --> SessionInit["Init session_state (inputs, labels, edit_index)"]
+  SessionInit --> Sidebar["Render Sidebar\n(Add/Edit forms + Manage list)"]
+  Sidebar -->|submit/add| UpdateState["Update session_state: add/update entry"]
+  UpdateState --> Rerender["st.rerun() or continue render"]
+  Rerender --> MainArea["Render Main Area (for each module entry)"]
+  MainArea --> PerModule["For each added module: get module object\nget_cutlist_df -> normalize_to_six -> display table + CSV OR fallback to calc_type1"]
+  PerModule --> End([End/Waiting for user action])

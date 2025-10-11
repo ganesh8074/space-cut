@@ -1,0 +1,7 @@
+flowchart LR
+  UserInput[User Inputs (form)] --> InputsDict[inputs dict stored in session_state]
+  InputsDict --> ModuleGetDF[call module.get_cutlist_df(inputs) if exists]
+  ModuleGetDF -->|returns DF| Normalize[normalize_to_six(df)]
+  Normalize -->|six-column DF| DisplayTable[st.dataframe + st.download_button]
+  ModuleGetDF -->|raises or returns None| LegacyCalc[call module.calc_type1(inputs)]
+  LegacyCalc --> DisplayText[st.write lines]
