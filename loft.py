@@ -49,13 +49,26 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
                                 index=0 if prefill.get("side_outside", DEFAULTS["side_outside"]) else 1,
                                 key="s_side_out").startswith("Side")
 
+    # Laminate color inputs
+    st.subheader("Laminate Colors")
+    left_panel_color = st.text_input("Left Side Panel Color", value=prefill.get("left_panel_color", "18 mm MR PLY FB BSL"), key="s_left_color")
+    right_panel_color = st.text_input("Right Side Panel Color", value=prefill.get("right_panel_color", "18 mm MR PLY FB BSL"), key="s_right_color")
+    top_panel_color = st.text_input("Top Panel Color", value=prefill.get("top_panel_color", "18 mm MR PLY 3272 SF +FB OSL"), key="s_top_color")
+    inner_color = st.text_input("Inner Color (bottom, back, etc.)", value=prefill.get("inner_color", "18 mm MR PLY FB BSL"), key="s_inner_color")
+    door_color = st.text_input("Shutter Color", value=prefill.get("door_color", "18 mm MR PLY 3272 SF +FB OSL"), key="s_door_color")
+    drawer_facia_color = st.text_input("Facia Color", value=prefill.get("drawer_facia_color", "18 mm MR PLY 188- ZMT +FB OSL"), key="s_drawer_facia_color")
+    skt_color = st.text_input("SKT Color", value=prefill.get("skt_color", "18 mm MR PLY 3272 SF +FB OSL"), key="s_skt_color")
+
     submitted = st.form_submit_button(button_label)
 
     data = dict(
         length=length, height=height, depth=depth,
         wood_thick=wood_thick, inside_lam=inside_lam, outside_lam=outside_lam,
         filler=filler,
-        side_outside=side_outside,doors=doors
+        side_outside=side_outside,doors=doors,
+        left_panel_color=left_panel_color, right_panel_color=right_panel_color,
+        top_panel_color=top_panel_color, inner_color=inner_color, door_color=door_color,
+        drawer_facia_color=drawer_facia_color, skt_color=skt_color,
         # have_center_partition=have_center_partition,
         # top_track_h=top_track_h, bottom_track_h=bottom_track_h, running_clear=running_clear,
         # door_thick=door_thick, overlap=overlap, stile_side_clear=stile_side_clear,
@@ -116,7 +129,15 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     side_outside = bool(d["side_outside"])
     filler_w = int(d["filler"])
     doors = int(d["doors"])
-
+    # Get laminate colors from input
+    left_panel_color = d.get("left_panel_color", "")
+    right_panel_color = d.get("right_panel_color", "")
+    top_panel_color = d.get("top_panel_color", "")
+    inner_color = d.get("inner_color", "")
+    door_color = d.get("door_color", "")
+    drawer_facia_color = d.get("drawer_facia_color", "")
+    skt_color = d.get("skt_color", "")
+    
     if doors > 2:
         center_panel = 1
     else:
@@ -139,9 +160,10 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Cut piece name": "Loft Doors",
         "Wood": dims_2(H, L/4, doors),
         "Colour laminate": dims_2(H, L/4, doors),
-        "White laminate": dims_2(H, L/4, doors),
-        "Colour edge bidding": round(2*H + 2*(L/4), 1),
-        "White edge bidding": 0.0,
+        "Laminate Color": door_color,
+            "Short side 1": dims_2(H, L/4, doors),
+        "Short side 2": round(2*H + 2*(L/4), 1),
+        "Long side 1": 0.0,
     })
     # Center Panel
     if center_panel:
@@ -149,53 +171,61 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
             "Cut piece name": "Center Panel",
             "Wood": dims(H, D),
             "Colour laminate": dims(H, D),
-            "White laminate": dims(H, D),
-            "Colour edge bidding": round(2*H + 2*D, 1),
-            "White edge bidding": 0.0,
+            "Laminate Color": door_color,
+            "Short side 1": dims(H, D),
+            "Short side 2": round(2*H + 2*D, 1),
+            "Long side 1": 0.0,
         })
     # Expo Panel Side
     rows.append({
         "Cut piece name": "Expo Panel Side",
         "Wood": dims(H, D),
         "Colour laminate": dims(H, D),
-        "White laminate": dims(H, D),
-        "Colour edge bidding": round(2*H + 2*D, 1),
-        "White edge bidding": 0.0,
+        "Laminate Color": inner_color,
+        "Short side 1": dims(H, D),
+        "Short side 2": round(2*H + 2*D, 1),
+        "Long side 1": 0.0,
     })
     # Dummy (vertical)
     rows.append({
         "Cut piece name": "Dummy (vertical)",
         "Wood": dims(H, filler_w),
         "Colour laminate": dims(H, filler_w),
-        "White laminate": dims(H, filler_w),
-        "Colour edge bidding": round(2*H + 2*filler_w, 1),
-        "White edge bidding": 0.0,
+        "Laminate Color": door_color,
+            "Short side 1": dims(H, filler_w),
+        "Short side 2": round(2*H + 2*filler_w, 1),
+        "Long side 1": 0.0,
     })
     # Dummy (horizontal)
     rows.append({
         "Cut piece name": "Dummy (horizontal)",
         "Wood": dims(L + 2*WOOD_IN_OUT, filler_w),
         "Colour laminate": dims(L + 2*WOOD_IN_OUT, filler_w),
-        "White laminate": dims(L + 2*WOOD_IN_OUT, filler_w),
-        "Colour edge bidding": round(2*(L + 2*WOOD_IN_OUT) + 2*filler_w, 1),
-        "White edge bidding": 0.0,
+        "Laminate Color": door_color,
+            "Short side 1": dims(L + 2*WOOD_IN_OUT, filler_w),
+        "Short side 2": round(2*(L + 2*WOOD_IN_OUT) + 2*filler_w, 1),
+        "Long side 1": 0.0,
     })
     # Ripper
     rows.append({
         "Cut piece name": "Ripper",
         "Wood": dims(L + 2*WOOD_IN_OUT, 98),
         "Colour laminate": dims(L + 2*WOOD_IN_OUT, 98),
-        "White laminate": dims(L + 2*WOOD_IN_OUT, 98),
-        "Colour edge bidding": 0.0,
-        "White edge bidding": round(2*(L + 2*WOOD_IN_OUT) + 2*98, 1),
+        "Laminate Color": door_color,
+            "Short side 1": dims(L + 2*WOOD_IN_OUT, 98),
+        "Short side 2": 0.0,
+        "Long side 1": round(2*(L + 2*WOOD_IN_OUT) + 2*98, 1),
     })
 
     df = pd.DataFrame(rows, columns=[
         "Cut piece name",
         "Wood",
         "Colour laminate",
-        "White laminate",
-        "Colour edge bidding",
-        "White edge bidding",
+        "Laminate Color",
+        "Short side 1",
+        "Short side 2",
+        "Long side 1",
+        "Long side 2",
+        "Groove",
     ])
     return df
