@@ -1,5 +1,6 @@
 import re
 import streamlit as st
+import pandas as pd
 
 import wardrobe_2door
 import wardrobe_1door
@@ -38,14 +39,17 @@ type_fns = {
 
 }
 
-# ---------- Helpers: normalize DF -> six columns ----------
+# ---------- Helpers: normalize DF -> new columns ----------
 SIX_COLS = [
     "Cut piece name",
     "Wood",
     "Colour laminate",
-    "White laminate",
-    "Colour edge bidding",
-    "White edge bidding",
+    "Laminate Color",
+    "Short side 1",
+    "Short side 2",
+    "Long side 1",
+    "Long side 2",
+    "Groove",
 ]
 
 def _dims(h, w):
@@ -86,9 +90,12 @@ def normalize_to_six(df):
                 "Cut piece name": r[item_col],
                 "Wood": _dims(r[h_col], r[w_col]),
                 "Colour laminate": "",
-                "White laminate": "",
-                "Colour edge bidding": 0.0,
-                "White edge bidding": 0.0,
+                "Laminate Color": "",
+                "Short side 1": "",
+                "Short side 2": "",
+                "Long side 1": "",
+                "Long side 2": "",
+                "Groove": "",
             })
         return pd.DataFrame(out_rows, columns=SIX_COLS)
 
@@ -209,14 +216,69 @@ if st.session_state["all_types_inputs"]:
                 col.write(f"**{keys[idx]}**: {values[idx]}")
 
             if df is not None and not df.empty and set([c.lower() for c in SIX_COLS]).issubset([c.lower() for c in df.columns]):
-                # Ensure proper column order
-                df = df[[c for c in SIX_COLS if c in df.columns]]
-                st.dataframe(df, use_container_width=True)
+                # Ensure required columns exist (create if missing)
+                for col in ["Short side 1", "Short side 2", "Long side 1", "Long side 2", "Groove"]:
+                    if col not in df.columns:
+                        df[col] = ""
 
-                # CSV download (standardized)
-                csv = df.to_csv(index=False).encode('utf-8')
+                # Ensure proper column order (preserve only our standard columns)
+                df = df[[c for c in SIX_COLS if c in df.columns]]
+
+                # Derive edge bidding columns (all text) from Laminate Color
+                if "Laminate Color" in df.columns:
+                    col_str = df["Laminate Color"].astype(str)
+                    mask_fb_bsl = col_str.str.contains("FB BSL", na=False)
+
+                    # If FB BSL → only Long side 1 = "0.8 FB", others blank
+                    if "Long side 1" in df.columns:
+                        df.loc[mask_fb_bsl, "Long side 1"] = "0.8 FB"
+                    for col in ["Short side 1", "Short side 2", "Long side 2"]:
+                        if col in df.columns:
+                            df.loc[mask_fb_bsl, col] = ""
+
+                    # Else → Long side 1 = "Colour Bidding", others blank
+                    if "Short side 1" in df.columns:
+                        df.loc[~mask_fb_bsl, "Short side 1"] = ""
+                    if "Short side 2" in df.columns:
+                        df.loc[~mask_fb_bsl, "Short side 2"] = ""
+                    if "Long side 2" in df.columns:
+                        df.loc[~mask_fb_bsl, "Long side 2"] = ""
+                    if "Long side 1" in df.columns:
+                        df.loc[~mask_fb_bsl, "Long side 1"] = "Colour Bidding"
+
+                # Ensure text dtypes for these derived columns
+                for text_col in ["Short side 1", "Short side 2", "Long side 1", "Long side 2", "Groove"]:
+                    if text_col in df.columns:
+                        df[text_col] = df[text_col].where(df[text_col].notna(), "").astype(str)
+
+                # Display editable table
+                st.subheader("📊 Editable Cut List")
+                st.info("💡 Click any cell to edit. Add/delete rows as needed. All changes will be saved in the CSV download.")
+                
+                # Display editable dataframe 
+                edited_df = st.data_editor(
+                    df,
+                    use_container_width=True,
+                    num_rows="dynamic",
+                    column_config={
+                        "Cut piece name": st.column_config.TextColumn("Cut piece name", width="medium"),
+                        "Wood": st.column_config.TextColumn("Wood", width="medium"),
+                        "Colour laminate": st.column_config.TextColumn("Colour laminate", width="medium"),
+                        "Laminate Color": st.column_config.TextColumn("Laminate Color", width="medium"),
+                        # All four edge bidding columns are text, derived from Colour laminate
+                        "Short side 1": st.column_config.TextColumn("Short side 1", width="small"),
+                        "Short side 2": st.column_config.TextColumn("Short side 2", width="small"),
+                        "Long side 1": st.column_config.TextColumn("Long side 1", width="small"),
+                        "Long side 2": st.column_config.TextColumn("Long side 2", width="small"),
+                        "Groove": st.column_config.TextColumn("Groove", width="medium"),
+                    },
+                    key=f"data_editor_{i}",
+                )
+
+                # CSV download with edited data - add unique key to avoid duplicate error
+                csv = edited_df.to_csv(index=False).encode('utf-8')
                 fname = f"{safe_filename(tname)}_cutlist.csv"
-                st.download_button("Download Cutlist as CSV", csv, fname, "text/csv")
+                st.download_button("📥 Download Edited Cut List as CSV", csv, fname, "text/csv", key=f"download_{i}")
             else:
                 # Fallback to legacy bullets
                 mats = module_obj.calc_type1(st.session_state["all_types_inputs"][i])
