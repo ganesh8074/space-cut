@@ -44,13 +44,13 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     st.subheader("2-Door Wardrobe – Inputs")
 
 
-    height = st.number_input("Height (mm)", 1000.0, 4200.0,
+    height = st.number_input("Height (mm)", 10.0, 4200.0,
                              value=float(prefill.get("height", 2075.0)), step=1.0, key="s_height")
     
-    length = st.number_input("Width (mm)", 1200.0, 5000.0,
+    length = st.number_input("Width (mm)", 10.0, 5000.0,
                              value=float(prefill.get("length", 2350.0)), step=1.0, key="s_len")
     
-    depth  = st.number_input("Depth (mm)", 450.0, 800.0,
+    depth  = st.number_input("Depth (mm)", 10.0, 800.0,
                              value=float(prefill.get("depth", 600.0)), step=1.0, key="s_depth")
     # Partition type selectors for both sides
     part_type_left = st.selectbox("Left Partition Type",
