@@ -49,15 +49,17 @@ type_fns = {
 }
 
 # ---------- Helpers: normalize DF -> new columns ----------
-SIX_COLS = [
-    "Cut piece name",
-    "Wood",
-    "Colour laminate",
-    "Laminate Color",
-    "Short side 1",
-    "Short side 2",
+STD_COLS = [
+    "SLNO",
+    "Description",
+    "Height",
+    "Width",
+    "Qty",
+    "Material",
     "Long side 1",
     "Long side 2",
+    "Short side 1",
+    "Short side 2",
     "Groove",
 ]
 
@@ -68,47 +70,110 @@ def _dims(h, w):
     except Exception:
         return ""
 
-def normalize_to_six(df):
+def normalize_to_std(df):
     """
-    Accepts a module DataFrame and returns a DataFrame with the six standard columns.
-    Handles two cases:
-      1) DF already has the six columns -> return as-is (reordered).
-      2) DF has the old shape (item/qty/height_mm/width_mm[/notes]) -> map to six.
-         In this case, Colour/White laminate left blank, edge biddings = 0.0.
+    Accepts a module DataFrame and returns a DataFrame with the standard columns.
+    Handles three cases:
+      1) DF already has the standard columns -> return as-is (reordered).
+      2) DF is the old "item/height_mm/width_mm[/qty]" schema -> map directly.
+      3) DF is the previous 9-column shape (Cut piece name/Wood/etc.) -> parse dims and map.
     """
     import pandas as pd
 
-    # Case 1: already in six-column shape
-    if set([c.lower() for c in df.columns]).issuperset(
-        [c.lower() for c in SIX_COLS]
-    ):
-        # reorder and return
-        return df[[c for c in SIX_COLS if c in df.columns]]
+    def parse_dims(val: str):
+        """Parse strings like '710 × 578', '710 x 578', or '710 × 578 = 3 qty'."""
+        if not isinstance(val, str):
+            return None
+        text = val.lower()
+        # normalize separators
+        text = text.replace("×", "x").replace(" X ", "x")
+        m = re.search(r"([0-9]+(?:\\.[0-9]+)?)\\s*x\\s*([0-9]+(?:\\.[0-9]+)?)", text)
+        if not m:
+            return None
+        h = float(m.group(1))
+        w = float(m.group(2))
+        qty_match = re.search(r"=\\s*([0-9]+)", text)
+        qty = int(qty_match.group(1)) if qty_match else 1
+        return h, w, qty
 
-    # Case 2: older schema -> map
+    # Case 1: already in standard column shape
+    if set([c.lower() for c in df.columns]).issuperset(
+        [c.lower() for c in STD_COLS]
+    ):
+        # Add SLNO if not present
+        if "SLNO" not in df.columns and "slno" not in [c.lower() for c in df.columns]:
+            df.insert(0, "SLNO", range(1, len(df) + 1))
+        # reorder and return
+        return df[[c for c in STD_COLS if c in df.columns]]
+
     lower = {c.lower(): c for c in df.columns}
-    needed = all(k in lower for k in ["item", "height_mm", "width_mm"])
-    if needed:
+
+    # Case 2: older numeric schema
+    if all(k in lower for k in ["item", "height_mm", "width_mm"]):
         item_col = lower["item"]
         h_col = lower["height_mm"]
         w_col = lower["width_mm"]
+        q_col = lower.get("qty", None)
 
         out_rows = []
-        for _, r in df.iterrows():
+        for idx, r in df.iterrows():
             out_rows.append({
-                "Cut piece name": r[item_col],
-                "Wood": _dims(r[h_col], r[w_col]),
-                "Colour laminate": "",
-                "Laminate Color": "",
-                "Short side 1": "",
-                "Short side 2": "",
+                "SLNO": idx + 1,
+                "Description": r[item_col],
+                "Height": r[h_col],
+                "Width": r[w_col],
+                "Qty": r[q_col] if q_col else 1,
+                "Material": "",
                 "Long side 1": "",
                 "Long side 2": "",
+                "Short side 1": "",
+                "Short side 2": "",
                 "Groove": "",
             })
-        return pd.DataFrame(out_rows, columns=SIX_COLS)
+        return pd.DataFrame(out_rows, columns=STD_COLS)
 
-    # Fallback: return empty six-col DF (caller can decide to show legacy view)
+    # Case 3: legacy shape with Wood column -> parse dims (even if some optional cols missing)
+    lower_cols = set([c.lower() for c in df.columns])
+    if "wood" in lower_cols and "cut piece name" in lower_cols:
+        out_rows = []
+        for idx, r in df.iterrows():
+            desc = r.get("Cut piece name", r.get("cut piece name", ""))
+            wood_val = r.get("Wood", r.get("wood", ""))
+            col_lam = r.get("Colour laminate", r.get("colour laminate", ""))
+            lam_color = r.get("Laminate Color", r.get("laminate color", ""))
+
+            parsed = parse_dims(str(wood_val))
+            if not parsed:
+                parsed = parse_dims(str(col_lam))
+            if parsed:
+                h, w, q = parsed
+            else:
+                h, w, q = 0, 0, 1
+
+            # Material preference: laminate color if present, otherwise the wood string (if it's not just dims)
+            material_candidate = str(lam_color or "").strip()
+            if not material_candidate:
+                material_candidate = str(wood_val or "").strip()
+            material = material_candidate
+
+            out_rows.append({
+                "SLNO": idx + 1,
+                "Description": desc,
+                "Height": h,
+                "Width": w,
+                "Qty": q,
+                "Material": material,
+                "Long side 1": r.get("Long side 1", ""),
+                "Long side 2": r.get("Long side 2", ""),
+                "Short side 1": r.get("Short side 1", ""),
+                "Short side 2": r.get("Short side 2", ""),
+                "Groove": r.get("Groove", ""),
+            })
+        return pd.DataFrame(out_rows, columns=STD_COLS)
+
+    # Fallback: ensure SLNO exists and return as-is
+    if "SLNO" not in df.columns:
+        df.insert(0, "SLNO", range(1, len(df) + 1))
     return df
 
 def safe_filename(name: str) -> str:
@@ -138,8 +203,8 @@ def create_styled_xlsx(df):
         for idx, row in df.iterrows():
             excel_row = idx + 2  # +2 because Excel is 1-indexed and row 1 is header
             
-            # Check if this is a heading row (Wood column is empty)
-            is_heading = (str(row.get("Wood", "")).strip() == "" or pd.isna(row.get("Wood", ""))) and str(row.get("Cut piece name", "")).strip() != ""
+            # Check if this is a heading row (Material column is empty)
+            is_heading = (str(row.get("Material", "")).strip() == "" or pd.isna(row.get("Material", ""))) and str(row.get("Description", "")).strip() != ""
             
             if is_heading:
                 # Apply golden background and bold font to all cells in this row
@@ -266,7 +331,7 @@ if st.session_state["all_types_inputs"]:
                     st.error(f"Error generating table: {e}")
 
                 if raw_df is not None:
-                    df = normalize_to_six(raw_df)
+                    df = normalize_to_std(raw_df)
 
             # Display user input log (key-value) above cutpiece table for all types
             user_inputs = st.session_state["all_types_inputs"][i]
@@ -279,18 +344,23 @@ if st.session_state["all_types_inputs"]:
                 col = cols[idx % 4]
                 col.write(f"**{keys[idx]}**: {values[idx]}")
 
-            if df is not None and not df.empty and set([c.lower() for c in SIX_COLS]).issubset([c.lower() for c in df.columns]):
+            if df is not None and not df.empty and set([c.lower() for c in STD_COLS]).issubset([c.lower() for c in df.columns]):
                 # Ensure required columns exist (create if missing)
-                for col in ["Short side 1", "Short side 2", "Long side 1", "Long side 2", "Groove"]:
+                for col in STD_COLS:
                     if col not in df.columns:
-                        df[col] = ""
+                        if col == "SLNO":
+                            df.insert(0, "SLNO", range(1, len(df) + 1))
+                        elif col in ["Height", "Width", "Qty"]:
+                            df[col] = 0
+                        else:
+                            df[col] = ""
 
                 # Ensure proper column order (preserve only our standard columns)
-                df = df[[c for c in SIX_COLS if c in df.columns]]
+                df = df[[c for c in STD_COLS if c in df.columns]]
 
-                # Derive edge bidding columns (all text) from Laminate Color
-                if "Laminate Color" in df.columns:
-                    col_str = df["Laminate Color"].astype(str)
+                # Derive edge bidding columns (all text) from Material
+                if "Material" in df.columns:
+                    col_str = df["Material"].astype(str)
                     mask_fb_bsl = col_str.str.contains("FB BSL", na=False)
 
                     # If FB BSL → only Long side 1 = "0.8 FB", others blank
@@ -310,8 +380,16 @@ if st.session_state["all_types_inputs"]:
                     if "Long side 1" in df.columns:
                         df.loc[~mask_fb_bsl, "Long side 1"] = "Colour Bidding"
 
-                # Ensure text dtypes for these derived columns
-                for text_col in ["Short side 1", "Short side 2", "Long side 1", "Long side 2", "Groove"]:
+                # Ensure proper dtypes
+                if "SLNO" in df.columns:
+                    df["SLNO"] = pd.to_numeric(df["SLNO"], errors="coerce").fillna(0).astype(int)
+                if "Height" in df.columns:
+                    df["Height"] = pd.to_numeric(df["Height"], errors="coerce").fillna(0)
+                if "Width" in df.columns:
+                    df["Width"] = pd.to_numeric(df["Width"], errors="coerce").fillna(0)
+                if "Qty" in df.columns:
+                    df["Qty"] = pd.to_numeric(df["Qty"], errors="coerce").fillna(0).astype(int)
+                for text_col in ["Description", "Material", "Short side 1", "Short side 2", "Long side 1", "Long side 2", "Groove"]:
                     if text_col in df.columns:
                         df[text_col] = df[text_col].where(df[text_col].notna(), "").astype(str)
 
@@ -325,15 +403,16 @@ if st.session_state["all_types_inputs"]:
                     use_container_width=True,
                     num_rows="dynamic",
                     column_config={
-                        "Cut piece name": st.column_config.TextColumn("Cut piece name", width="medium"),
-                        "Wood": st.column_config.TextColumn("Wood", width="medium"),
-                        "Colour laminate": st.column_config.TextColumn("Colour laminate", width="medium"),
-                        "Laminate Color": st.column_config.TextColumn("Laminate Color", width="medium"),
-                        # All four edge bidding columns are text, derived from Colour laminate
-                        "Short side 1": st.column_config.TextColumn("Short side 1", width="small"),
-                        "Short side 2": st.column_config.TextColumn("Short side 2", width="small"),
-                        "Long side 1": st.column_config.TextColumn("Long side 1", width="small"),
-                        "Long side 2": st.column_config.TextColumn("Long side 2", width="small"),
+                        "SLNO": st.column_config.NumberColumn("SLNO", width="small", disabled=True),
+                        "Description": st.column_config.TextColumn("Description", width="large"),
+                        "Height": st.column_config.NumberColumn("Height", width="small"),
+                        "Width": st.column_config.NumberColumn("Width", width="small"),
+                        "Qty": st.column_config.NumberColumn("Qty", width="small"),
+                        "Material": st.column_config.TextColumn("Material", width="large"),
+                        "Long side 1": st.column_config.TextColumn("Long side 1", width="medium"),
+                        "Long side 2": st.column_config.TextColumn("Long side 2", width="medium"),
+                        "Short side 1": st.column_config.TextColumn("Short side 1", width="medium"),
+                        "Short side 2": st.column_config.TextColumn("Short side 2", width="medium"),
                         "Groove": st.column_config.TextColumn("Groove", width="medium"),
                     },
                     key=f"data_editor_{i}",
@@ -341,9 +420,9 @@ if st.session_state["all_types_inputs"]:
                 
                 # Helper function to style heading rows
                 def highlight_headings(row):
-                    """Apply background color to heading rows (where Wood column is empty)"""
-                    # Check if this is a heading row (Wood column is empty/blank)
-                    is_heading = (str(row["Wood"]).strip() == "" or pd.isna(row["Wood"])) and str(row["Cut piece name"]).strip() != ""
+                    """Apply background color to heading rows (where Material column is empty)"""
+                    # Check if this is a heading row (Material column is empty/blank)
+                    is_heading = (str(row.get("Material", "")).strip() == "" or pd.isna(row.get("Material", ""))) and str(row.get("Description", "")).strip() != ""
                     if is_heading:
                         # Return yellow/golden background for heading rows
                         return ['background-color: #FFD700; font-weight: bold; color: #000000'] * len(row)
@@ -353,7 +432,21 @@ if st.session_state["all_types_inputs"]:
                 # Display styled preview (read-only, updates with edits)
                 st.subheader("📊 Preview with Highlighted Headings")
                 st.caption("Read-only preview - updates automatically with your edits above")
-                styled_df = edited_df.style.apply(highlight_headings, axis=1)
+                # Create a formatted copy to drop trailing .0 for whole numbers
+                formatted_df = edited_df.copy()
+
+                def _fmt_num(val):
+                    if pd.isna(val):
+                        return ""
+                    if isinstance(val, (int, float)):
+                        return str(int(val)) if float(val).is_integer() else str(val)
+                    return val
+
+                for num_col in ["Height", "Width", "Qty"]:
+                    if num_col in formatted_df.columns:
+                        formatted_df[num_col] = formatted_df[num_col].apply(_fmt_num)
+
+                styled_df = formatted_df.style.apply(highlight_headings, axis=1)
                 st.dataframe(styled_df, use_container_width=True, height=400)
 
                 # XLSX download with edited data and styling - add unique key to avoid duplicate error

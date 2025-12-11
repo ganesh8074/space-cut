@@ -29,6 +29,44 @@ def _dims_2(h, w, qty):
     # compact dimension string with qty (mm implied)
     return f"{round(h,1)} × {round(w,1)} = {qty} qty"
 
+def create_row(description, height, width, qty, material, long1="", long2="", short1="", short2="", groove=""):
+    """Helper to create a row in the new standard format"""
+    # Format numbers to remove trailing zeros
+    def clean_number(val):
+        if not val:
+            return 0
+        rounded = round(val, 1)
+        # Convert to int if it's a whole number
+        return int(rounded) if rounded == int(rounded) else rounded
+    
+    return {
+        "Description": description,
+        "Height": clean_number(height),
+        "Width": clean_number(width),
+        "Qty": qty,
+        "Material": material,
+        "Long side 1": long1,
+        "Long side 2": long2,
+        "Short side 1": short1,
+        "Short side 2": short2,
+        "Groove": groove,
+    }
+
+def create_heading_row(title):
+    """Helper to create a heading row (for section titles)"""
+    return {
+        "Description": title,
+        "Height": "",
+        "Width": "",
+        "Qty": "",
+        "Material": "",
+        "Long side 1": "",
+        "Long side 2": "",
+        "Short side 1": "",
+        "Short side 2": "",
+        "Groove": "",
+    }
+
 # ---------------- UI (all vertical, one-by-one) ----------------
 def form_type1(prefill: Dict=None, button_label: str="Add"):
     if prefill is None:
@@ -273,100 +311,67 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         # Add heading row for BPO & Tandems section
         tandem_count = int(d.get("tandem_count", 0)) if d.get("has_tandem", False) else 0
         heading = "BPO" if d.get("has_bpo", False) and not d.get("has_tandem", False) else f"BPO & {tandem_count} Tandems" if d.get("has_bpo", False) else f"{tandem_count} Tandems"
-        rows.append({
-            "Cut piece name": heading,
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row(heading))
     
     # ========== BPO (BOTTLE PULL OUT) ==========
     if d.get("has_bpo", False):
         bpo_w = float(d.get("bpo_width", 1025.0))
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            base_h, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove on Long side 2"
+        ))
         
         # Right side panel
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            base_h, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove on Long side 2"
+        ))
         
         # Top Panel
         top_w = bpo_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Top Panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Top Panel",
+            top_w, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Bottom panel
-        rows.append({
-            "Cut piece name": "Bottom panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Bottom panel",
+            top_w, base_d, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Back 6mm
         back_h_calc = base_h - 2*(WOOD_IN - groove)
         back_w_calc = bpo_w - WOOD_OUT
-        rows.append({
-            "Cut piece name": f"Back {int(B)}mm",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Back ({int(B)}mm)",
+            back_h_calc, back_w_calc, 2,
+            f"{int(B)} mm BWP PLY {base_color}"
+        ))
         
         # Vertical panel
         vert_h = base_h - WOOD_IN_OUT
         vert_w = base_d - B - 50
-        rows.append({
-            "Cut piece name": "Vertical panel",
-            "Wood": _dims(vert_h, vert_w),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Vertical panel",
+            vert_h, vert_w, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU"
+        ))
     
     # ========== TANDEM ==========
     if d.get("has_tandem", False):
@@ -377,455 +382,291 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         # Tandem Bottom
         tandem_bottom_w = tandem_w - 2*WOOD_OUT
         tandem_bottom_d = base_d - B - 50
-        rows.append({
-            "Cut piece name": "Tandem Bottom",
-            "Wood": _dims_2(tandem_bottom_w, tandem_bottom_d, tandem_count),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Tandem Bottom",
+            tandem_bottom_w, tandem_bottom_d, tandem_count,
+            f"18 mm BWP PLY {base_color}"
+        ))
         
         # Tandem Back (different sizes based on door count)
         tandem_back_h = base_h - 2*(WOOD_IN - groove)
         if tandem_type == "2-door":
             # Two sizes: 638x68 (2 pieces) and 638x145 (1 piece)
-            rows.append({
-                "Cut piece name": "Tandem Back",
-                "Wood": _dims_2(tandem_back_h, 68, 2),
-                "Colour laminate": "",
-                "Laminate Color": base_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
-            rows.append({
-                "Cut piece name": "Tandem Back",
-                "Wood": _dims(tandem_back_h, 145),
-                "Colour laminate": "",
-                "Laminate Color": base_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Tandem Back",
+                tandem_back_h, 68, 2,
+                f"18 mm BWP PLY {base_color}",
+                short1="0.8*22 FB", short2="0.8*22 FB", long1="0.8*22 FB", long2="0.8*22 FB"
+            ))
+            rows.append(create_row(
+                "Tandem Back",
+                tandem_back_h, 145, 1,
+                f"18 mm BWP PLY {base_color}",
+                short1="0.8*22 FB", short2="0.8*22 FB", long1="0.8*22 FB", long2="0.8*22 FB"
+            ))
         else:  # 3-door
             # Similar logic for 3-door configuration
-            rows.append({
-                "Cut piece name": "Tandem Back",
-                "Wood": _dims_2(tandem_back_h, 68, 3),
-                "Colour laminate": "",
-                "Laminate Color": base_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Tandem Back",
+                tandem_back_h, 68, 3,
+                f"18 mm BWP PLY {base_color}",
+                short1="0.8*22 FB", short2="0.8*22 FB", long1="0.8*22 FB", long2="0.8*22 FB"
+            ))
         
         # Facia for tandems
         facia_h = base_h - WOOD_IN_OUT
         if tandem_type == "2-door":
             facia_w_1 = (tandem_w - WOOD_IN) / 2
-            rows.append({
-                "Cut piece name": "Facia",
-                "Wood": _dims_2(facia_h, facia_w_1, 2),
-                "Colour laminate": _dims_2(facia_h, facia_w_1, 2),
-                "Laminate Color": facia_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Facia",
+                facia_h, facia_w_1, 2,
+                f"18 mm HDHMR {facia_color}",
+                long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+            ))
             facia_w_2 = tandem_w - WOOD_IN - facia_w_1
-            rows.append({
-                "Cut piece name": "Facia",
-                "Wood": _dims(facia_h, facia_w_2),
-                "Colour laminate": _dims(facia_h, facia_w_2),
-                "Laminate Color": facia_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Facia",
+                facia_h, facia_w_2, 1,
+                f"18 mm HDHMR {facia_color}",
+                long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+            ))
         else:  # 3-door
             facia_w = (tandem_w - WOOD_IN) / 3
-            rows.append({
-                "Cut piece name": "Facia",
-                "Wood": _dims_2(facia_h, facia_w, 3),
-                "Colour laminate": _dims_2(facia_h, facia_w, 3),
-                "Laminate Color": facia_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Facia",
+                facia_h, facia_w, 3,
+                f"18 mm HDHMR {facia_color}",
+                long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+            ))
         
         # Shutter for tandem
         shutter_h = base_h - WOOD_IN_OUT
         shutter_w = tandem_w / (3 if tandem_type == "3-door" else 2)
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims(shutter_h, shutter_w),
-            "Colour laminate": _dims(shutter_h, shutter_w),
-            "Laminate Color": shutter_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            shutter_h, shutter_w, 1,
+            f"18 mm HDHMR {shutter_color}",
+            long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+        ))
         
         # Dummy
-        rows.append({
-            "Cut piece name": "Dummy",
-            "Wood": _dims(base_h, 50),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Dummy",
+            base_h, 50, 1,
+            f"18 mm HDHMR {base_color}",
+            short1="0.8* 22 107 -LU"
+        ))
     
     # ========== BLIND CORNER UNIT ==========
     if d.get("has_blind_corner", False):
         # Add heading row for Blind Corner Unit
-        rows.append({
-            "Cut piece name": "Blind corner unit",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Blind corner unit"))
         
         blind_w = float(d.get("blind_corner_width", 1570.0))
         blind_shelf = d.get("blind_corner_shelf", True)
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            base_h, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove on Long side 2"
+        ))
         
         # Right side panel
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            base_h, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove on Long side 2"
+        ))
         
         # Top panel
         top_w = blind_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Top panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Top panel",
+            top_w, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Bottom panel
-        rows.append({
-            "Cut piece name": "Bottom panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Bottom panel",
+            top_w, base_d, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Back 6mm
         back_h_calc = base_h - 2*(WOOD_IN - groove)
         back_w_calc = blind_w - WOOD_OUT
-        rows.append({
-            "Cut piece name": f"Back {int(B)}mm",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Back ({int(B)}mm)",
+            back_h_calc, back_w_calc, 1,
+            f"{int(B)} mm BWP PLY {base_color}"
+        ))
         
         # Vertical panel
         vert_h = base_h - WOOD_IN_OUT
         vert_w = base_d - B - 50
-        rows.append({
-            "Cut piece name": "Vertical panel",
-            "Wood": _dims(vert_h, vert_w),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Vertical panel",
+            vert_h, vert_w, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU"
+        ))
         
         # Fixed shelf
         if blind_shelf:
             shelf_w = blind_w - 2*WOOD_OUT - 150  # Approximate
             shelf_d = base_d - B - 50
-            rows.append({
-                "Cut piece name": "Fixed shelf",
-                "Wood": _dims(shelf_w, shelf_d),
-                "Colour laminate": "",
-                "Laminate Color": base_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Fixed shelf",
+                shelf_w, shelf_d, 1,
+                f"18 mm BWP PLY {base_color}",
+                long1="2*22 107 - LU"
+            ))
         
         # Tandem Bottom
         tandem_bottom_w = 350
         tandem_bottom_d = base_d - B - 50
-        rows.append({
-            "Cut piece name": "Tandem Bottom",
-            "Wood": _dims(tandem_bottom_w, tandem_bottom_d),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Tandem Bottom",
+            tandem_bottom_w, tandem_bottom_d, 1,
+            f"18 mm BWP PLY {base_color}"
+        ))
         
         # Tandem Back
         tandem_back_h = base_h - 2*(WOOD_IN - groove)
-        rows.append({
-            "Cut piece name": "Tandem Back",
-            "Wood": _dims(tandem_back_h, 145),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Tandem Back",
+            tandem_back_h, 145, 1,
+            f"18 mm BWP PLY {base_color}",
+            short1="0.8*22 FB", short2="0.8*22 FB", long1="0.8*22 FB", long2="0.8*22 FB"
+        ))
         
         # Facia
         facia_h = base_h - WOOD_IN_OUT
         facia_w = 295
-        rows.append({
-            "Cut piece name": "Facia",
-            "Wood": _dims(facia_h, facia_w),
-            "Colour laminate": _dims(facia_h, facia_w),
-            "Laminate Color": facia_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Facia",
+            facia_h, facia_w, 1,
+            f"18 mm HDHMR {facia_color}",
+            long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+        ))
         
         # Shutter
         shutter_h = base_h - WOOD_IN_OUT
         shutter_w = 485
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims(shutter_h, shutter_w),
-            "Colour laminate": _dims(shutter_h, shutter_w),
-            "Laminate Color": shutter_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            shutter_h, shutter_w, 1,
+            f"18 mm HDHMR {shutter_color}",
+            long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+        ))
         
         # Adj shelf
-        rows.append({
-            "Cut piece name": "Adj shelf",
-            "Wood": _dims(1089, 528),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Adj shelf",
+            1089, 528, 1,
+            f"18 mm BWP PLY {base_color}",
+            short1="0.8*22 FB"
+        ))
         
         # Dummies
-        rows.append({
-            "Cut piece name": "Dummy",
-            "Wood": _dims(670, 70),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
-        rows.append({
-            "Cut piece name": "Dummy",
-            "Wood": _dims(690, 630),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
-        rows.append({
-            "Cut piece name": "Dummy",
-            "Wood": _dims(base_h, 40),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Dummy",
+            670, 70, 1,
+            f"18 mm BWP PLY {base_color}",
+            short1="0.8*22 FB"
+        ))
+        rows.append(create_row(
+            "Dummy",
+            690, 630, 1,
+            f"18 mm BWP PLY {base_color}",
+            short1="0.8*22 FB"
+        ))
+        rows.append(create_row(
+            "Dummy",
+            base_h, 40, 1,
+            f"18 mm HDHMR {base_color}",
+            long1="2*22 107 - LU"
+        ))
     
     # ========== SINK UNIT ==========
     if d.get("has_sink_unit", False):
         # Add heading row for Sink Unit
-        rows.append({
-            "Cut piece name": "Sink unit",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Sink unit"))
         
         sink_w = float(d.get("sink_width", 670.0))
         sink_doors = int(d.get("sink_doors", 2))
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            base_h, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove on Long side 2"
+        ))
         
         # Right side panel (different material - HDHMR)
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(base_h, base_d - OUT),
-            "Colour laminate": _dims(base_h, base_d - OUT),
-            "Laminate Color": wall_color,  # HDHMR material
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            base_h + 100, base_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 107 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU", long2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Top panel
         top_w = sink_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Top panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Top panel",
+            top_w, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Bottom panel
-        rows.append({
-            "Cut piece name": "Bottom panel",
-            "Wood": _dims(top_w, base_d - OUT),
-            "Colour laminate": _dims(top_w, base_d - OUT),
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Bottom panel",
+            top_w, base_d, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Back 6mm
         back_h_calc = base_h - 2*(WOOD_IN - groove)
         back_w_calc = sink_w - WOOD_OUT
-        rows.append({
-            "Cut piece name": f"Back {int(B)}mm",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Back ({int(B)}mm)",
+            back_h_calc, back_w_calc, 1,
+            f"{int(B)} mm BWP PLY {base_color}"
+        ))
         
         # Shutters
         shutter_h = base_h - WOOD_IN_OUT
         shutter_w = (sink_w - WOOD_IN) / sink_doors
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims_2(shutter_h, shutter_w, sink_doors),
-            "Colour laminate": _dims_2(shutter_h, shutter_w, sink_doors),
-            "Laminate Color": shutter_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            shutter_h, shutter_w, sink_doors,
+            f"18 mm HDHMR {shutter_color}",
+            long1="2*22 107 - LU", long2="2*22 107 - LU", short1="2*22 107 - LU", short2="2*22 107 - LU"
+        ))
     
     # ========== REGULAR BASE CABINETS ==========
     base_cabinets = int(d.get("base_cabinets", 0))
     if base_cabinets > 0:
         # Add heading row for Regular Base Cabinets
-        rows.append({
-            "Cut piece name": f"Regular Base Cabinets ({base_cabinets} units)",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row(f"Regular Base Cabinets ({base_cabinets} units)"))
     
     for i in range(base_cabinets):
         cab_width = float(d.get(f"base_cab_{i}_width", 600.0))
@@ -833,606 +674,394 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         cab_shelves = int(d.get(f"base_cab_{i}_shelves", 0))
         
         # Top
-        rows.append({
-            "Cut piece name": f"Base Cabinet {i+1} - Top",
-            "Wood": _dims(cab_width - 2*WOOD_OUT, base_d - OUT),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Base Cabinet {i+1} - Top",
+            cab_width - 2*WOOD_OUT, base_d - OUT, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Bottom
-        rows.append({
-            "Cut piece name": f"Base Cabinet {i+1} - Bottom",
-            "Wood": _dims(cab_width - 2*WOOD_OUT, base_d - OUT),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Base Cabinet {i+1} - Bottom",
+            cab_width - 2*WOOD_OUT, base_d, 1,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Side Panels
-        rows.append({
-            "Cut piece name": f"Base Cabinet {i+1} - Side Panels",
-            "Wood": _dims_2(base_h - WOOD_IN_OUT, base_d - OUT, 2),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Base Cabinet {i+1} - Side Panels",
+            base_h - WOOD_IN_OUT, base_d - OUT, 2,
+            f"18 mm BWP PLY {base_color}",
+            long1="2*22 107 - LU",
+            groove="Groove"
+        ))
         
         # Shelves
         if cab_shelves > 0:
             shelf_depth = base_d - B - 50
-            rows.append({
-                "Cut piece name": f"Base Cabinet {i+1} - Shelves",
-                "Wood": _dims_2(cab_width - 2*WOOD_OUT, shelf_depth, cab_shelves),
-                "Colour laminate": "",
-                "Laminate Color": base_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                f"Base Cabinet {i+1} - Shelves",
+                cab_width - 2*WOOD_OUT, shelf_depth, cab_shelves,
+                f"18 mm BWP PLY {base_color}",
+                short1="0.8*22 FB"
+            ))
         
         # Back Panel
         back_h_calc = base_h - 2*(WOOD_IN - groove)
         back_w_calc = cab_width - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": f"Base Cabinet {i+1} - Back Panel ({int(B)}mm)",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": base_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            f"Base Cabinet {i+1} - Back Panel ({int(B)}mm)",
+            back_h_calc, back_w_calc, 1,
+            f"{int(B)} mm BWP PLY {base_color}"
+        ))
     
     # ========== WALL UNITS ==========
     
     # Wall Unit-1 (Standard)
     if d.get("wall_unit_1", False):
         # Add heading row for Wall Unit-1
-        rows.append({
-            "Cut piece name": "Wall Unit-1 (Standard)",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Wall Unit-1 (Standard)"))
         
         wall_1_w = float(d.get("wall_unit_1_width", 1025.0))
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(wall_h, wall_d - OUT),
-            "Colour laminate": _dims(wall_h, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            wall_h, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Right side panel
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(wall_h, wall_d - OUT),
-            "Colour laminate": _dims(wall_h, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            wall_h, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Top panel
         top_w = wall_1_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Top panel",
-            "Wood": _dims(top_w, wall_d - OUT),
-            "Colour laminate": _dims(top_w, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Top panel",
+            top_w, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Back panel
         back_h_calc = wall_h - 2*(WOOD_IN - groove)
         back_w_calc = wall_1_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Back panel",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Back panel",
+            back_h_calc, back_w_calc, 1,
+            f"18 mm HDHMR {wall_color}",
+            short1="0.8*22 FB", short2="0.8*22 FB", long1="0.8*22 FB", long2="0.8*22 FB"
+        ))
         
         # Shutters
         shutter_h = wall_h - WOOD_IN_OUT
         shutter_w = wall_1_w - WOOD_IN
-        rows.append({
-            "Cut piece name": "Shutters",
-            "Wood": _dims(shutter_h, shutter_w),
-            "Colour laminate": _dims(shutter_h, shutter_w),
-            "Laminate Color": shutter_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutters",
+            shutter_h, shutter_w, 1,
+            f"18 mm HDHMR {shutter_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
     
     # Wall Unit-2-L Corner
     if d.get("wall_unit_2_corner", False):
         # Add heading row for Wall Unit-2-L Corner
-        rows.append({
-            "Cut piece name": "Wall Unit-2-L Corner",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Wall Unit-2-L Corner"))
         
         wall_2_w = float(d.get("wall_unit_2_width", 630.0))
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(wall_h - 20, wall_d - OUT),
-            "Colour laminate": _dims(wall_h - 20, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            wall_h - 20, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Right side panel
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(wall_h - 20, wall_d - OUT),
-            "Colour laminate": _dims(wall_h - 20, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            wall_h - 20, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Top panel - L cut out
-        rows.append({
-            "Cut piece name": "Top panel -L cut out",
-            "Wood": _dims(610, 610),
-            "Colour laminate": _dims(610, 610),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Top panel -L cut out",
+            610, 610, 1,
+            f"18 mm MR PLY {base_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Bottom panel - L cut out
-        rows.append({
-            "Cut piece name": "Bottom panel -L cut out",
-            "Wood": _dims(630, 630),
-            "Colour laminate": _dims(630, 630),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Bottom panel -L cut out",
+            630, 630, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU", long2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Back 18mm
-        rows.append({
-            "Cut piece name": "Back 18 mm",
-            "Wood": _dims(wall_h - 20, 610),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Back 18 mm",
+            wall_h - 20, 610, 1,
+            f"18 mm MR PLY {base_color}",
+            groove="Groove"
+        ))
         
         # Back 6mm
-        rows.append({
-            "Cut piece name": "Back 6mm",
-            "Wood": _dims(wall_h - 26, 604),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Back 6mm",
+            wall_h - 26, 604, 1,
+            f"6 mm MR PLY {base_color}"
+        ))
         
         # Shutters
         shutter_h = wall_h - WOOD_IN_OUT
         shutter_w = (wall_2_w - WOOD_IN) / 2
-        rows.append({
-            "Cut piece name": "Shutters",
-            "Wood": _dims_2(shutter_h, shutter_w, 2),
-            "Colour laminate": _dims_2(shutter_h, shutter_w, 2),
-            "Laminate Color": shutter_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutters",
+            shutter_h, shutter_w, 2,
+            f"18 mm HDHMR {shutter_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
     
     # Wall Unit-3-Open Unit
     if d.get("wall_unit_3_open", False):
         # Add heading row for Wall Unit-3-Open Unit
-        rows.append({
-            "Cut piece name": "Wall Unit-3-Open Unit",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Wall Unit-3-Open Unit"))
         
         wall_3_w = float(d.get("wall_unit_3_width", 630.0))
         
         # Left side panel - 90 degree cross cut
-        rows.append({
-            "Cut piece name": "Left side panel- 90 degree cross cut",
-            "Wood": _dims(wall_h - 20, wall_d - OUT),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Left side panel- 90 degree cross cut",
+            wall_h - 115, wall_d - 37, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Right side panel - 90 degree cross cut
-        rows.append({
-            "Cut piece name": "Right side panel-90 degree cross cut",
-            "Wood": _dims(wall_h - 20, wall_d - OUT),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Right side panel-90 degree cross cut",
+            wall_h - 115, wall_d - 37, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Top panel - L cut out
-        rows.append({
-            "Cut piece name": "Top panel-L cut out",
-            "Wood": _dims(610, 610),
-            "Colour laminate": _dims(610, 610),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Top panel-L cut out",
+            610, 610, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU"
+        ))
         
         # Bottom panel - L cut out
-        rows.append({
-            "Cut piece name": "Bottom panel -L cut out",
-            "Wood": _dims(630, 630),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Bottom panel -L cut out",
+            630, 630, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU", long2="0.8*22 255 - LU"
+        ))
         
         # Back 18mm (2 pieces)
-        rows.append({
-            "Cut piece name": "Back 18 mm",
-            "Wood": _dims_2(wall_h - 20, 610, 2),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Back 18 mm",
+            wall_h - 20, 610, 1,
+            f"18 mm HDHMR {wall_color}"
+        ))
+        rows.append(create_row(
+            "Back 18 mm",
+            wall_h - 20, 590, 1,
+            f"18 mm HDHMR {wall_color}"
+        ))
     
     # Wall Unit-4 Profile SS Unit
     if d.get("wall_unit_4_profile", False):
         # Add heading row for Wall Unit-4 Profile SS Unit
-        rows.append({
-            "Cut piece name": "Wall Unit-4 Profile SS Unit",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        rows.append(create_heading_row("Wall Unit-4 Profile SS Unit"))
         
         wall_4_w = float(d.get("wall_unit_4_width", 670.0))
         wall_4_doors = int(d.get("wall_unit_4_doors", 2))
         
         # Left side panel
-        rows.append({
-            "Cut piece name": "Left side panel",
-            "Wood": _dims(wall_h, wall_d - OUT),
-            "Colour laminate": _dims(wall_h, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Left side panel",
+            wall_h + 375, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Right side panel
-        rows.append({
-            "Cut piece name": "Right side panel",
-            "Wood": _dims(wall_h, wall_d - OUT),
-            "Colour laminate": _dims(wall_h, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Right side panel",
+            wall_h + 375, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Top panel
         top_w = wall_4_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Top panel",
-            "Wood": _dims(top_w, wall_d - OUT),
-            "Colour laminate": _dims(top_w, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Top panel",
+            top_w, wall_d - OUT, 1,
+            f"18 mm MR PLY {base_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Bottom panel
-        rows.append({
-            "Cut piece name": "Bottom panel",
-            "Wood": _dims(top_w, wall_d - OUT),
-            "Colour laminate": _dims(top_w, wall_d - OUT),
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "Groove",
-        })
+        rows.append(create_row(
+            "Bottom panel",
+            top_w, wall_d - OUT, 1,
+            f"18 mm HDHMR {wall_color}",
+            long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU",
+            groove="Groove"
+        ))
         
         # Back 6mm
-        back_h_calc = wall_h - 2*(WOOD_IN - groove)
+        back_h_calc = wall_h - 2*(WOOD_IN - groove) + 375
         back_w_calc = wall_4_w - 2*WOOD_OUT
-        rows.append({
-            "Cut piece name": "Back 6mm",
-            "Wood": _dims(back_h_calc, back_w_calc),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Back 6mm",
+            back_h_calc, back_w_calc, 1,
+            f"6 mm MR PLY {base_color}"
+        ))
         
         # Adj shelf
-        rows.append({
-            "Cut piece name": "Adj shelf",
-            "Wood": _dims(top_w - 20, wall_d - B - 50),
-            "Colour laminate": "",
-            "Laminate Color": wall_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Adj shelf",
+            top_w - 20, wall_d - B - 47, 1,
+            f"18 mm MR PLY {base_color}",
+            short1="0.8*22 FB"
+        ))
         
         # Shutters (Aluminium profile shutter)
-        rows.append({
-            "Cut piece name": "Shutters",
-            "Wood": _dims_2(wall_h - WOOD_IN_OUT, (wall_4_w - WOOD_IN) / wall_4_doors, wall_4_doors),
-            "Colour laminate": _dims_2(wall_h - WOOD_IN_OUT, (wall_4_w - WOOD_IN) / wall_4_doors, wall_4_doors),
-            "Laminate Color": "Aluminium profile shutter",
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        shutter_w = (wall_4_w - WOOD_IN) / wall_4_doors
+        rows.append(create_row(
+            "Shutters",
+            wall_h - WOOD_IN_OUT + 375, shutter_w, wall_4_doors,
+            "Aluminium profile shutter"
+        ))
     
     # ========== LOFT ==========
     loft_shutters = int(d.get("loft_shutters", 0))
     if loft_shutters > 0:
-        # Add heading row for Loft Shutters
-        rows.append({
-            "Cut piece name": "Loft Shutters",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
+        # Add heading row for Loft
+        rows.append(create_heading_row("Loft"))
         
         loft_shutter_w = float(d.get("loft_shutter_width", 445.0))
         
         # Shutters
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims(loft_h, loft_shutter_w),
-            "Colour laminate": _dims(loft_h, loft_shutter_w),
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            loft_h, loft_shutter_w, 1,
+            f"18 mm HDHMR {loft_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
         
         # Additional shutters (different sizes)
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims_2(loft_h, 337, 3),
-            "Colour laminate": _dims_2(loft_h, 337, 3),
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            loft_h, 337, 3,
+            f"18 mm HDHMR {loft_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
         
         # Dummies
-        rows.append({
-            "Cut piece name": "Dummy",
-            "Wood": _dims_2(550, 70, 2),
-            "Colour laminate": "",
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Dummy",
+            550, 70, 2,
+            f"18 mm HDHMR {loft_color}",
+            short1="0.8*22 255 - LU"
+        ))
     
     # Loft Bottom Expo
     loft_expo_count = int(d.get("loft_bottom_expo_count", 0))
     if loft_expo_count > 0:
-        # Add heading row for Loft Bottom Expo
-        rows.append({
-            "Cut piece name": "Loft Bottom Expo",
-            "Wood": "",
-            "Colour laminate": "",
-            "Laminate Color": "",
-            "Short side 1": "", "Short side 2": "", "Long side 1": "", "Long side 2": "", "Groove": "",
-        })
-        
         for i in range(loft_expo_count):
             expo_w = float(d.get(f"loft_expo_{i}_width", 2200.0))
-            rows.append({
-                "Cut piece name": "Loft bottom expo",
-                "Wood": _dims(expo_w, base_d - OUT),
-                "Colour laminate": _dims(expo_w, base_d - OUT),
-                "Laminate Color": loft_color,
-                "Short side 1": "",
-                "Short side 2": "",
-                "Long side 1": "",
-                "Long side 2": "",
-                "Groove": "",
-            })
+            rows.append(create_row(
+                "Loft bottom expo",
+                expo_w, base_d, 1,
+                f"18 mm HDHMR {loft_color}",
+                long1="2*22 255 - LU", short1="0.8*22 255 - LU", short2="0.8*22 255 - LU", long2="0.8*22 255 - LU"
+            ))
             
             # Additional dummies for each expo
             if expo_w >= 2000:
-                rows.append({
-                    "Cut piece name": "Dummy",
-                    "Wood": _dims(expo_w, 80),
-                    "Colour laminate": "",
-                    "Laminate Color": loft_color,
-                    "Short side 1": "",
-                    "Short side 2": "",
-                    "Long side 1": "",
-                    "Long side 2": "",
-                    "Groove": "",
-                })
+                rows.append(create_row(
+                    "Dummy",
+                    expo_w, 80, 1,
+                    f"18 mm HDHMR {loft_color}",
+                    short1="0.8*22 255 - LU"
+                ))
     
     # Rippers
     total_loft_width = sum([float(d.get(f"loft_expo_{i}_width", 0)) for i in range(loft_expo_count)])
     if total_loft_width > 0:
         ripper_length = total_loft_width + 2*WOOD_IN_OUT
         ripper_count = max(1, int(total_loft_width / 300))  # Approximate count
-        rows.append({
-            "Cut piece name": "Rippers",
-            "Wood": _dims_2(ripper_length, 100, ripper_count),
-            "Colour laminate": "",
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Rippers",
+            ripper_length, 100, ripper_count,
+            f"18 mm MR PLY {base_color}",
+            short1="0.8*22 FB", short2="0.8*22 FB"
+        ))
     
     # Additional loft shutters
     if loft_shutters > 0:
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims_2(loft_h, 465, 2),
-            "Colour laminate": _dims_2(loft_h, 465, 2),
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims_2(loft_h, 330, 2),
-            "Colour laminate": _dims_2(loft_h, 330, 2),
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
-        rows.append({
-            "Cut piece name": "Shutter",
-            "Wood": _dims_2(loft_h, 409, 2),
-            "Colour laminate": _dims_2(loft_h, 409, 2),
-            "Laminate Color": loft_color,
-            "Short side 1": "",
-            "Short side 2": "",
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+        rows.append(create_row(
+            "Shutter",
+            loft_h, 465, 2,
+            f"18 mm HDHMR {loft_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
+        rows.append(create_row(
+            "Shutter",
+            loft_h, 330, 2,
+            f"18 mm HDHMR {loft_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
+        rows.append(create_row(
+            "Shutter",
+            loft_h, 409, 2,
+            f"18 mm HDHMR {loft_color}",
+            long1="2*22 255 - LU", long2="2*22 255 - LU", short1="2*22 255 - LU", short2="2*22 255 - LU"
+        ))
+    
+    # Add SLNO to each row
+    for idx, row in enumerate(rows, start=1):
+        row["SLNO"] = idx
     
     df = pd.DataFrame(rows, columns=[
-        "Cut piece name",
-        "Wood",
-        "Colour laminate",
-        "Laminate Color",
-        "Short side 1",
-        "Short side 2",
+        "SLNO",
+        "Description",
+        "Height",
+        "Width",
+        "Qty",
+        "Material",
         "Long side 1",
         "Long side 2",
+        "Short side 1",
+        "Short side 2",
         "Groove",
     ])
     return df
