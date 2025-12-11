@@ -1,12 +1,16 @@
 import re
 import streamlit as st
 import pandas as pd
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font, Alignment
 
 import wardrobe_2door
 import wardrobe_1door
 import loft
 import wardrobe_2door_slide
 import wardrobe_3door_slide
+import kitchen
 
 # --- Map wardrobe types to their form/calc functions and image paths ---
 # image_paths can be 1 or 2 paths; both will be shown one below the other.
@@ -35,6 +39,11 @@ type_fns = {
         loft.form_type1,
         loft.calc_type1,
         ["loft1.png", "loft2.png"]
+    ),
+    "Kitchen": (
+        kitchen.form_type1,
+        kitchen.calc_type1,
+        []  # no images for now
     ),
 
 }
@@ -106,6 +115,60 @@ def safe_filename(name: str) -> str:
     # turn "Kitchen - Cabinet" into "kitchen_cabinet"
     base = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").lower()
     return base or "cutlist"
+
+def create_styled_xlsx(df):
+    """
+    Create an XLSX file with styling - golden background for heading rows
+    Returns: BytesIO buffer containing the XLSX file
+    """
+    output = BytesIO()
+    
+    # Create a new workbook and select the active sheet
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Cut List')
+        workbook = writer.book
+        worksheet = writer.sheets['Cut List']
+        
+        # Define styles
+        heading_fill = PatternFill(start_color='FFD700', end_color='FFD700', fill_type='solid')
+        heading_font = Font(bold=True, color='000000')
+        normal_alignment = Alignment(horizontal='left', vertical='center')
+        
+        # Apply styles to rows (starting from row 2, as row 1 is header)
+        for idx, row in df.iterrows():
+            excel_row = idx + 2  # +2 because Excel is 1-indexed and row 1 is header
+            
+            # Check if this is a heading row (Wood column is empty)
+            is_heading = (str(row.get("Wood", "")).strip() == "" or pd.isna(row.get("Wood", ""))) and str(row.get("Cut piece name", "")).strip() != ""
+            
+            if is_heading:
+                # Apply golden background and bold font to all cells in this row
+                for col_idx in range(1, len(df.columns) + 1):
+                    cell = worksheet.cell(row=excel_row, column=col_idx)
+                    cell.fill = heading_fill
+                    cell.font = heading_font
+                    cell.alignment = normal_alignment
+            else:
+                # Apply normal alignment to non-heading rows
+                for col_idx in range(1, len(df.columns) + 1):
+                    cell = worksheet.cell(row=excel_row, column=col_idx)
+                    cell.alignment = normal_alignment
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    output.seek(0)
+    return output
 
 # ----------------------------------------------------------
 
@@ -192,6 +255,7 @@ if st.session_state["all_types_inputs"]:
                 "2-Door Sliding": wardrobe_2door_slide,
                 "3-Door Sliding": wardrobe_3door_slide,
                 "Wardrobe Loft ": loft,
+                "Kitchen": kitchen,
             }[tname]
 
             if hasattr(module_obj, "get_cutlist_df"):
@@ -251,9 +315,9 @@ if st.session_state["all_types_inputs"]:
                     if text_col in df.columns:
                         df[text_col] = df[text_col].where(df[text_col].notna(), "").astype(str)
 
-                # Display editable table
-                st.subheader("📊 Editable Cut List")
-                st.info("💡 Click any cell to edit. Add/delete rows as needed. All changes will be saved in the CSV download.")
+                # Display editable table first
+                st.subheader("✏️ Editable Cut List")
+                st.info("💡 Click any cell to edit. Add/delete rows as needed. Changes will reflect in the preview below.")
                 
                 # Display editable dataframe 
                 edited_df = st.data_editor(
@@ -274,11 +338,34 @@ if st.session_state["all_types_inputs"]:
                     },
                     key=f"data_editor_{i}",
                 )
+                
+                # Helper function to style heading rows
+                def highlight_headings(row):
+                    """Apply background color to heading rows (where Wood column is empty)"""
+                    # Check if this is a heading row (Wood column is empty/blank)
+                    is_heading = (str(row["Wood"]).strip() == "" or pd.isna(row["Wood"])) and str(row["Cut piece name"]).strip() != ""
+                    if is_heading:
+                        # Return yellow/golden background for heading rows
+                        return ['background-color: #FFD700; font-weight: bold; color: #000000'] * len(row)
+                    else:
+                        return [''] * len(row)
+                
+                # Display styled preview (read-only, updates with edits)
+                st.subheader("📊 Preview with Highlighted Headings")
+                st.caption("Read-only preview - updates automatically with your edits above")
+                styled_df = edited_df.style.apply(highlight_headings, axis=1)
+                st.dataframe(styled_df, use_container_width=True, height=400)
 
-                # CSV download with edited data - add unique key to avoid duplicate error
-                csv = edited_df.to_csv(index=False).encode('utf-8')
-                fname = f"{safe_filename(tname)}_cutlist.csv"
-                st.download_button("📥 Download Edited Cut List as CSV", csv, fname, "text/csv", key=f"download_{i}")
+                # XLSX download with edited data and styling - add unique key to avoid duplicate error
+                xlsx_buffer = create_styled_xlsx(edited_df)
+                fname = f"{safe_filename(tname)}_cutlist.xlsx"
+                st.download_button(
+                    "📥 Download Styled Cut List as Excel", 
+                    xlsx_buffer, 
+                    fname, 
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    key=f"download_{i}"
+                )
             else:
                 # Fallback to legacy bullets
                 mats = module_obj.calc_type1(st.session_state["all_types_inputs"][i])
