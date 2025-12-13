@@ -87,12 +87,12 @@ def normalize_to_std(df):
         text = val.lower()
         # normalize separators
         text = text.replace("×", "x").replace(" X ", "x")
-        m = re.search(r"([0-9]+(?:\\.[0-9]+)?)\\s*x\\s*([0-9]+(?:\\.[0-9]+)?)", text)
+        m = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*x\s*([0-9]+(?:\.[0-9]+)?)", text)
         if not m:
             return None
         h = float(m.group(1))
         w = float(m.group(2))
-        qty_match = re.search(r"=\\s*([0-9]+)", text)
+        qty_match = re.search(r"=\s*([0-9]+)", text)
         qty = int(qty_match.group(1)) if qty_match else 1
         return h, w, qty
 
