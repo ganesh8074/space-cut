@@ -202,7 +202,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     door_color = d.get("door_color", "")
     drawer_facia_color = d.get("drawer_facia_color", "")
     skt_color = d.get("skt_color", "")
-    
+
     rows = []
 
     WOOD_IN = WOOD + IN  #Wood + Inside laminate
