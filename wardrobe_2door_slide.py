@@ -17,6 +17,7 @@ DEFAULTS = {
 
     # storage
     "shelves": 4,
+    "s_panels": 2,
     "l_drawers": 2,
     "r_drawers": 2,
     "draw_height": 150.0,
@@ -66,6 +67,8 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
 
     shelves = st.number_input("Horizontal Shelves (qty)", 0, 16,
                               value=int(prefill.get("shelves", DEFAULTS["shelves"])), step=1, key="s_shelves")
+    s_panels = st.number_input("No of side panels  (qty)", 0, 16,
+                              value=int(prefill.get("s_panels", DEFAULTS["s_panels"])), step=1, key="s_panelss")
 
     ver_shelf_height = st.number_input("Vertical Shlef Total Height (mm)", 10.0, 3000.0,
                                     value=float(prefill.get("ver_shelf_height", DEFAULTS["ver_shelf_height"])), step=1.0, key="s_dver_shelf_h")
@@ -147,7 +150,7 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
         draw_height=draw_height, ver_shelf_height=ver_shelf_height,part_type_left=part_type_left, part_type_right=part_type_right,
         left_panel_color=left_panel_color, right_panel_color=right_panel_color,
         top_panel_color=top_panel_color, inner_color=inner_color, door_color=door_color,
-        drawer_facia_color=drawer_facia_color, skt_color=skt_color,
+        drawer_facia_color=drawer_facia_color, skt_color=skt_color,s_panels=s_panels,
         # have_center_partition=have_center_partition,
         # top_track_h=top_track_h, bottom_track_h=bottom_track_h, running_clear=running_clear,
         # door_thick=door_thick, overlap=overlap, stile_side_clear=stile_side_clear,
@@ -183,6 +186,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     groove = float(d["groove"])
     side_outside = bool(d["side_outside"])
     shelves = int(d["shelves"])
+    s_panels = int(d["s_panels"])
     l_drawers = int(d["l_drawers"])
     r_drawers = int(d["r_drawers"])
     drawer_height = float(d["draw_height"])
@@ -205,8 +209,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     WOOD_IN_OUT = WOOD + IN + OUT
 
     # sides
-    side_h = H - OUT
-    side_w = D - OUT
+    side_h = H
+    side_w = D
     # Left Panel
     rows.append({
         "Cut piece name": "Left Panel",
@@ -229,8 +233,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # top / bottom
-    tb_len = (L - 2*WOOD_IN_OUT - 2*IN) if side_outside else L
-    tb_w   = D - OUT
+    tb_len = (L - s_panels*WOOD_OUT) 
+    tb_w   = D 
     rows.append({
         "Cut piece name": "Top Panel",
         "Wood": _dims(tb_len, tb_w),
@@ -251,8 +255,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # back (in grooves)
-    back_h = H - P - (2*(WOOD_IN - groove))
-    back_l = (L - 3*WOOD + 4*groove)/2
+    back_h =  H - P - (s_panels*(WOOD_IN - groove))
+    back_l = (L - s_panels*13)/2
     rows.append({
         "Cut piece name": f"Back ({int(B)}mm)",
         "Wood": _dims_2(back_h, back_l, 2),   # 2 pcs implied
@@ -266,7 +270,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     # center partition
     part_h = H - P - WOOD_IN_OUT
-    part_w = D - B - 100
+    part_w = D - B - 100 - WOOD_IN_OUT
     rows.append({
         "Cut piece name": "Center Partition",
         "Wood": _dims(part_h, part_w),
@@ -278,7 +282,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # doors
-    door_h = H - P - 3*WOOD_IN_OUT
+    door_h = H - P - 3*WOOD
     door_w = (L + WOOD)/2
     rows.append({
         "Cut piece name": "Doors",

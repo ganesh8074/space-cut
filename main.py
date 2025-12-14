@@ -365,7 +365,7 @@ if st.session_state["all_types_inputs"]:
 
                     # If FB BSL → only Long side 1 = "0.8 FB", others blank
                     if "Long side 1" in df.columns:
-                        df.loc[mask_fb_bsl, "Long side 1"] = "0.8 FB"
+                        df.loc[mask_fb_bsl, "Long side 1"] = "0.8*22 FB"
                     for col in ["Short side 1", "Short side 2", "Long side 2"]:
                         if col in df.columns:
                             df.loc[mask_fb_bsl, col] = ""

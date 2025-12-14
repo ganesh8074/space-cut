@@ -17,6 +17,7 @@ DEFAULTS = {
 
     # storage
     "shelves": 4,
+    "s_panels": 2,
     "l_drawers": 2,
     "r_drawers": 2,
     "draw_height": 150.0,
@@ -68,6 +69,9 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
 
     shelves = st.number_input("Horizontal Shelves (qty)", 0, 16,
                               value=int(prefill.get("shelves", DEFAULTS["shelves"])), step=1, key="s_shelves")
+    
+    s_panels = st.number_input("No of side panels  (qty)", 0, 16,
+                              value=int(prefill.get("s_panels", DEFAULTS["s_panels"])), step=1, key="s_panelss")
 
     ver_shelf_height = st.number_input("Vertical Shlef Total Height (mm)", 10.0, 3000.0,
                                     value=float(prefill.get("ver_shelf_height", DEFAULTS["ver_shelf_height"])), step=1.0, key="s_dver_shelf_h")
@@ -161,7 +165,7 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
         back_thick=back_thick, plinth=plinth, groove=groove,
         side_outside=side_outside, shelves=shelves, l_drawers=l_drawers, r_drawers=r_drawers,
         draw_height=draw_height,part_type_left=part_type_left, part_type_right=part_type_right,
-        ver_shelf_height=ver_shelf_height,
+        ver_shelf_height=ver_shelf_height,s_panels=s_panels,
         left_panel_color=left_panel_color, right_panel_color=right_panel_color,
         top_panel_color=top_panel_color, inner_color=inner_color, door_color=door_color,
         drawer_facia_color=drawer_facia_color, skt_color=skt_color,
@@ -214,6 +218,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     door_color = d.get("door_color", "")
     drawer_facia_color = d.get("drawer_facia_color", "")
     skt_color = d.get("skt_color", "")
+    s_panels = int(d["s_panels"])
     
     rows = []
 
@@ -222,8 +227,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     WOOD_IN_OUT = WOOD + IN + OUT
 
     # sides
-    side_h = H - OUT
-    side_w = D - OUT
+    side_h = H
+    side_w = D
     # Left Panel
     rows.append({
         "Cut piece name": "Left Panel",
@@ -250,8 +255,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # top / bottom
-    tb_len = (L - 2*WOOD_IN_OUT - 2*IN) if side_outside else L
-    tb_w   = D - OUT
+    tb_len = (L - s_panels*WOOD_OUT) 
+    tb_w   = D 
     rows.append({
         "Cut piece name": "Top Panel",
         "Wood": _dims(tb_len, tb_w),
@@ -276,8 +281,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # back (in grooves)
-    back_h = H - P - (2*(WOOD_IN - groove))
-    back_l = (L - 3*WOOD + 4*groove)/2
+    back_h = H - P - (s_panels*(WOOD_IN - groove))
+    back_l = (L - s_panels*13)/2
     rows.append({
         "Cut piece name": f"Back ({int(B)}mm)",
         "Wood": _dims_2(back_h, back_l, 2),   # 2 pcs implied
@@ -292,8 +297,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
 
     # center partition
-    part_h = H - P - WOOD_IN_OUT
-    part_w = D - B - 50
+    part_h = H - P - 2*WOOD_IN_OUT
+    part_w = D - B - 50 - WOOD_IN_OUT
     rows.append({
         "Cut piece name": "Center Partition",
         "Wood": _dims(part_h, part_w),
@@ -308,7 +313,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     # doors
     door_h = H - P - WOOD_IN_OUT
-    door_w = (L - 4*OUT)/2
+    door_w = L/2
     rows.append({
         "Cut piece name": "Doors",
         "Wood": _dims_2(door_h, door_w, 2),
@@ -335,7 +340,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # shelves
-    shelf_len = (L - 3*WOOD_IN_OUT)/2
+    shelf_len =  (L - s_panels*WOOD_OUT)/2
     if shelves > 0:
         total_shelfs = shelves
         rows.append({
@@ -375,13 +380,13 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     if l_sing_draw > 0:
         draw_s_h = drawer_height - 2*WOOD_IN
-        draw_s_d = D - B - 3*WOOD
-        draw_f_h = drawer_height - 2*WOOD
+        draw_s_d = part_w - WOOD_IN_OUT
+        draw_f_h =draw_s_h/2
         draw_f_w = (L - 4*WOOD)
         draw_b_h = drawer_height - 2*WOOD_IN
         draw_b_w = (L - 4*WOOD)
         draw_bo_w = (L -  3*WOOD)
-        draw_bo_d = D - B - 4*WOOD
+        draw_bo_d =  draw_s_d - 26
         draw_fa_h = drawer_height - WOOD
         draw_fa_w = (L - WOOD_IN)
 
