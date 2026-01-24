@@ -343,8 +343,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     rows.append({
         "Cut piece name": "Bottom Panel",
         "Wood": _dims(tb_len, tb_w),
-        "Colour laminate": "",                      # as per your earlier list
-        "Laminate Color": "",
+        "Colour laminate":"",                      # as per your earlier list
+        "Laminate Color": inner_color,
             "Short side 1": _dims(tb_len, tb_w),
         "Short side 2": 0.0,
         "Long side 1": round(2*D + tb_len + 2*IN, 1),   # white twice there
@@ -359,7 +359,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Cut piece name": f"Back ({int(B)}mm)",
         "Wood": _dims_2(back_h, back_l, 1),   # 2 pcs implied
         "Colour laminate": "",
-        "Laminate Color": "",
+        "Laminate Color": "6mm MR PLY FB BSL",
         "Short side 1": _dims_2(back_h, back_l, 2),
         "Short side 2": 0.0,
         "Long side 1": 0.0,
@@ -375,7 +375,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
             "Cut piece name": "Center Partition",
             "Wood": _dims_2(part_h, part_d, parts),
             "Colour laminate": "",
-            "Laminate Color": "",
+            "Laminate Color":inner_color,
                 "Short side 1": _dims_2(part_h, part_d, 2),
             "Short side 2": 0.0,
             "Long side 1": round(2*part_h + 2*part_d, 1),
@@ -412,7 +412,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # shelves
-    shelf_len =  (L - s_panels*WOOD_OUT)/(parts + 1)
+    shelf_len =  (L - (s_panels + parts)*WOOD)/(parts + 1)
     if shelves > 0:
         total_shelfs = shelves
         rows.append({
@@ -450,7 +450,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
             draw_fa_w = drawer_width
         
             rows.append({
-                "Cut piece name": "Drawer Side Panel ",
+                "Cut piece name": f"Drawer {int(i+1)} Side  ",
                 "Wood": _dims_2(draw_s_h, draw_s_d, 2),
                 "Colour laminate": "",
                 "Laminate Color": inner_color,
@@ -461,7 +461,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
                 "Groove": "",
             })
             rows.append({
-                "Cut piece name": "Drawer Front Panel",
+                "Cut piece name": f"Drawer {int(i+1)} Front ",
                 "Wood": _dims_2(draw_f_h, draw_f_w, 1),
                 "Colour laminate": "",
                 "Laminate Color": inner_color,
@@ -470,7 +470,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
                 "Long side 1": round(2*draw_f_h + 2*draw_f_w, 1),
             })
             rows.append({
-                "Cut piece name": " Drawer Back Panel",
+                "Cut piece name": f" Drawer {int(i+1)} Back ",
                 "Wood": _dims_2(draw_b_h, draw_b_w, 1),
                 "Colour laminate": "",
                 "Laminate Color": inner_color,
@@ -479,10 +479,10 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
                 "Long side 1": round(2*draw_b_h + 2*draw_b_w, 1),
             })
             rows.append({
-                "Cut piece name": f" Drawer Bottom ({int(B)}mm)",
+                "Cut piece name": f" Drawer {int(i+1)} Bottom ({int(B)}mm)",
                 "Wood": _dims_2(draw_bo_w, draw_bo_d, 1),
                 "Colour laminate": "",
-                "Laminate Color": inner_color,
+                "Laminate Color": "6mm MR PLY FB BSL",
                 "Short side 1": _dims_2(draw_bo_w, draw_bo_d, 1),
                 "Short side 2": 0.0,
                 "Long side 1": 0.0,
@@ -490,7 +490,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
                 "Groove": "",
             })
             rows.append({
-                "Cut piece name": "Drawer Fascia",
+                "Cut piece name": f"Drawer {int(i+1)} Facia",
                 "Wood": _dims_2(draw_fa_h, draw_fa_w, 1),
                 "Colour laminate": _dims_2(draw_fa_h, draw_fa_w, 1),
                 "Laminate Color": drawer_facia_color,
@@ -499,7 +499,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
                 "Long side 1": round(2*draw_fa_h + 2*draw_fa_w, 1),
             })
             rows.append({
-                "Cut piece name": "Drawer Dummy",
+                "Cut piece name": f"Drawer {int(i+1)} Dummy",
                 "Wood": _dims_2(draw_s_h, draw_s_d, 2),
                 "Colour laminate": "",
                 "Laminate Color": inner_color,
