@@ -360,7 +360,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Wood": _dims_2(back_h, back_l, 1),   # 2 pcs implied
         "Colour laminate": "",
         "Laminate Color": "6mm MR PLY FB BSL",
-        "Short side 1": _dims_2(back_h, back_l, 2),
+            "Short side 1": 0.0,
         "Short side 2": 0.0,
         "Long side 1": 0.0,
         "Long side 2": "",

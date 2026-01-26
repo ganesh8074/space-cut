@@ -355,13 +355,15 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
 
     # back (in grooves)
     back_h = H - P - (s_panels*(WOOD_IN - groove))
-    back_l = (L - s_panels*13)/2
+    if parts > 1:
+        qty = parts + 1
+    back_l = (L - s_panels*13)/qty
     rows.append({
         "Cut piece name": f"Back ({int(B)}mm)",
-        "Wood": _dims_2(back_h, back_l, 2),   # 2 pcs implied
+        "Wood": _dims_2(back_h, back_l, qty),   # 2 pcs implied
         "Colour laminate": "",
         "Laminate Color": "6mm MR PLY FB BSL",
-            "Short side 1": _dims_2(back_h, back_l, 4),
+            "Short side 1": 0.0,
         "Short side 2": 0.0,
         "Long side 1": 0.0,
         "Long side 2": "",
