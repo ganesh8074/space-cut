@@ -20,7 +20,7 @@ DEFAULTS = {
     "s_panels": 2,
     "drawers": 0,
     "parts": 1,
-    "doors": 2,
+    "doors": 3,
     # "l_drawers": 2,
     # "r_drawers": 2,
     # "draw_height": 150.0,
@@ -46,7 +46,7 @@ def form_type1(prefill: Dict=None, button_label: str="Add"):
     if prefill is None:
         prefill = {}
 
-    st.subheader("2-Door Wardrobe – Inputs")
+    st.subheader("3-Door Wardrobe – Inputs")
 
 
     height = st.number_input("Height (mm)", 10.0, 4200.0,
@@ -290,7 +290,7 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     dr1_h = int(d["draw1_height"])
     dr2_h = int(d["draw2_height"])
     parts = int(d["parts"]) 
-    doors = 2
+    doors = 3
 
     
     rows = []
@@ -327,8 +327,8 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Groove": "",
     })
 
-    # top / bottom
-    tb_len = (L - s_panels*WOOD_OUT) 
+    # top / bottom (adjusted for 3-door with partitions)
+    tb_len = (L - (s_panels + 1)*WOOD_OUT)  # accounting for left and right panels 
     tb_w   = D 
     rows.append({
         "Cut piece name": "Top Panel",
@@ -353,25 +353,25 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Groove": "",
     })
 
-    # back (in grooves)
+    # back (in grooves) - adjusted for 3 sections with partitions
     back_h = H - P - (s_panels*(WOOD_IN - groove))
-    back_l = (L - s_panels*13)/2
+    back_l = (L - (s_panels + 1)*13)/3  # 3 sections for 3-door
     rows.append({
         "Cut piece name": f"Back ({int(B)}mm)",
-        "Wood": _dims_2(back_h, back_l, 2),   # 2 pcs implied
+        "Wood": _dims_2(back_h, back_l, 3),   # 3 pcs for 3 sections
         "Colour laminate": "",
         "Laminate Color": "6mm MR PLY FB BSL",
-            "Short side 1": _dims_2(back_h, back_l, 4),
+            "Short side 1": _dims_2(back_h, back_l, 6),
         "Short side 2": 0.0,
         "Long side 1": 0.0,
         "Long side 2": "",
         "Groove": "",
     })
-    part_d = D - B - 50 - WOOD_IN
 
     if parts > 0:
         # center partition
         part_h = H - P - 2*WOOD_IN
+        part_d = D - B - 50 - WOOD_IN
         rows.append({
             "Cut piece name": "Center Partition",
             "Wood": _dims_2(part_h, part_d, parts),
@@ -384,37 +384,36 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
             "Groove": "",
         })
 
-    # doors
+    # doors (3 doors)
     door_h = H - P
     door_w = L/doors - 2
     rows.append({
         "Cut piece name": "Doors",
         "Wood": _dims_2(door_h, door_w, doors),
-        "Colour laminate": _dims_2(door_h, door_w,2),
+        "Colour laminate": _dims_2(door_h, door_w, 3),
         "Laminate Color": door_color,
-        "Short side 1": _dims_2(door_h, door_w,2),
-        "Short side 2": round(4*door_h + 4*door_w, 1),
+        "Short side 1": _dims_2(door_h, door_w, 3),
+        "Short side 2": round(6*door_h + 6*door_w, 1),
         "Long side 1": 0.0,
         "Long side 2": "",
         "Groove": "",
     })
 
     # bottom skirting
-    if P > 0:
-        rows.append({
-            "Cut piece name": "Bottom SKT",
-            "Wood": _dims(P, L),
-            "Colour laminate": _dims(P - OUT, L - 2*OUT),
-            "Laminate Color": skt_color,
-                "Short side 1": "",
-            "Short side 2": round(2*P + L, 1),
-            "Long side 1": "",
-            "Long side 2": "",
-            "Groove": "",
-        })
+    rows.append({
+        "Cut piece name": "Bottom SKT",
+        "Wood": _dims(P, L),
+        "Colour laminate": _dims(P - OUT, L - 2*OUT),
+        "Laminate Color": skt_color,
+            "Short side 1": "",
+        "Short side 2": round(2*P + L, 1),
+        "Long side 1": "",
+        "Long side 2": "",
+        "Groove": "",
+    })
 
-    # shelves
-    shelf_len =  (L - (s_panels + parts)*WOOD)/(parts + 1)
+    # shelves (adjusted for 3 sections)
+    shelf_len =  (L - (s_panels + parts + 2)*WOOD)/(parts + 2)
     if shelves > 0:
         total_shelfs = shelves
         rows.append({

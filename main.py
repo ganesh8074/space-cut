@@ -5,6 +5,7 @@ from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 
+import wardrobe_3door
 import wardrobe_2door
 import wardrobe_1door
 import loft
@@ -24,6 +25,11 @@ type_fns = {
         wardrobe_2door.form_type1,
         wardrobe_2door.calc_type1,
         ["2door.jpg"]  # <— add second image if available
+    ),
+    "3-Door Normal": (
+        wardrobe_3door.form_type1,
+        wardrobe_3door.calc_type1,
+        ["3door.jpg"]
     ),
     "2-Door Sliding": (
         wardrobe_2door_slide.form_type1,
@@ -317,6 +323,7 @@ if st.session_state["all_types_inputs"]:
             module_obj = {
                 "1-Door Wardrobe": wardrobe_1door,
                 "2-Door Normal": wardrobe_2door,
+                "3-Door Normal": wardrobe_3door,
                 "2-Door Sliding": wardrobe_2door_slide,
                 "3-Door Sliding": wardrobe_3door_slide,
                 "Wardrobe Loft ": loft,

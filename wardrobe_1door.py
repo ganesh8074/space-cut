@@ -366,11 +366,12 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
         "Long side 2": "",
         "Groove": "",
     })
+    
+    part_d = D - B - 50 - WOOD_IN
 
     if parts > 0:
         # center partition
         part_h = H - P - 2*WOOD_IN
-        part_d = D - B - 50 - WOOD_IN
         rows.append({
             "Cut piece name": "Center Partition",
             "Wood": _dims_2(part_h, part_d, parts),
@@ -399,17 +400,18 @@ def get_cutlist_df(d: Dict) -> pd.DataFrame:
     })
 
     # bottom skirting
-    rows.append({
-        "Cut piece name": "Bottom SKT",
-        "Wood": _dims(P, L),
-        "Colour laminate": _dims(P - OUT, L - 2*OUT),
-        "Laminate Color": skt_color,
-            "Short side 1": "",
-        "Short side 2": round(2*P + L, 1),
-        "Long side 1": "",
-        "Long side 2": "",
-        "Groove": "",
-    })
+    if P > 0:
+        rows.append({
+            "Cut piece name": "Bottom SKT",
+            "Wood": _dims(P, L),
+            "Colour laminate": _dims(P - OUT, L - 2*OUT),
+            "Laminate Color": skt_color,
+                "Short side 1": "",
+            "Short side 2": round(2*P + L, 1),
+            "Long side 1": "",
+            "Long side 2": "",
+            "Groove": "",
+        })
 
     # shelves
     shelf_len =  (L - (s_panels + parts)*WOOD)/(parts + 1)
